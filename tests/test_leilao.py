@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta  # Deve estar assim
 from models.leilao import Leilao, EstadoLeilao
 
 def test_leilao_criado_com_estado_inativo():

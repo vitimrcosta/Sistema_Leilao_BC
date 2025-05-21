@@ -34,5 +34,18 @@ class Leilao:
         else:
             self.estado = EstadoLeilao.FINALIZADO
 
+    def adicionar_lance(self, lance):
+        """Adiciona um lance válido ao leilão"""
+        if self.estado != EstadoLeilao.ABERTO:
+            raise ValueError("Leilão deve estar ABERTO para receber lances.")
+        if lance.valor < self.lance_minimo:
+            raise ValueError(f"Lance deve ser ≥ R${self.lance_minimo:.2f}")
+        if self.lances and lance.valor <= self.lances[-1].valor:
+            raise ValueError(f"Lance deve ser > R${self.lances[-1].valor:.2f}")
+        if self.lances and lance.participante == self.lances[-1].participante:
+            raise ValueError("Participante não pode dar lances consecutivos")
+        
+        self.lances.append(lance)
+
     def __str__(self):
         return f"Leilão: {self.nome} ({self.estado.name})"
