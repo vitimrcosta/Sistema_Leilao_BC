@@ -1,11 +1,19 @@
 from datetime import datetime
+import re
 
 class Participante:
     def __init__(self, cpf: str, nome: str, email: str, data_nascimento: datetime):
-        self.cpf = cpf
+        self.cpf = self._validar_cpf(cpf)
         self.nome = nome
-        self.email = email
+        self.email = self._validar_email(email)
         self.data_nascimento = data_nascimento
 
-    def __str__(self):
-        return f"Participante: {self.nome} (CPF: {self.cpf})"
+    def _validar_cpf(self, cpf: str) -> str:
+        if not re.match(r'^\d{3}\.\d{3}\.\d{3}-\d{2}$', cpf):
+            raise ValueError("CPF deve estar no formato 123.456.789-00")
+        return cpf
+
+    def _validar_email(self, email: str) -> str:
+        if not re.match(r'^[^@]+@[^@]+\.[^@]+$', email):
+            raise ValueError("E-mail inválido")
+        return email
