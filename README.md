@@ -21,18 +21,20 @@ Este é um projeto de sistema de controle de leilões, desenvolvido como parte d
 ## 🗂️ Estrutura do Projeto
 
 models/
-├── participante.py
-├── leilao.py
-├── lance.py
-├── gerenciador_leiloes.py
+│   participante.py
+│   leilao.py
+│   lance.py
+│   gerenciador_leiloes.py
+│
 services/
-└── email_service.py
+│   email_service.py
+│
 tests/
-├── test_participante.py
-├── test_leilao.py
-├── test_lance.py
-├── test_gerenciador_leiloes.py
-└── test_email_service.py
+│   test_participante.py
+│   test_leilao.py
+│   test_lance.py
+│   test_gerenciador_leiloes.py
+│   test_email_service.py
 
 ## 🧪 Testes
 
