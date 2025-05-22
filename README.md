@@ -19,6 +19,7 @@ Este é um projeto de sistema de controle de leilões, desenvolvido como parte d
 
 ## 🗂️ Estrutura do Projeto
 
+```
 Sistema de Leilões
 ├── Leilão
 │   ├── Estados: INATIVO, ABERTO, FINALIZADO, EXPIRADO
@@ -32,6 +33,7 @@ Sistema de Leilões
 └── Gerenciador
     ├── Filtros: por estado, data
     └── Controle: participantes e leilões
+```
 
 ## 🧪 Testes
 
