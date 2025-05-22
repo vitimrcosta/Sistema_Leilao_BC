@@ -6,35 +6,34 @@ Este é um projeto de sistema de controle de leilões, desenvolvido como parte d
 
 ## 📌 Funcionalidades Implementadas
 
-- [x] Cadastro de leilões com nome, lance mínimo, data de início e término
-- [x] Controle de estados do leilão: `INATIVO`, `ABERTO`, `FINALIZADO`, `EXPIRADO`
-- [x] Regras de transição entre estados validadas via exceções
-- [x] Registro e validação de lances (respeitando o valor mínimo)
-- [x] Cadastro e validação de participantes (CPF e e-mail)
-- [x] Gerenciador de leilões com filtros por estado e data
-- [x] Proibição de remoção de participantes com lances ativos
-- [x] Simulação de envio de e-mails via serviço fictício
-- [x] Testes unitários para todos os módulos
-
+- ✅ Cadastro de participantes com validação de CPF e e-mail
+- ✅ Cadastro de leilões com nome, lance mínimo, data de início e término
+- ✅ Controle de estados do leilão: `INATIVO`, `ABERTO`, `FINALIZADO`, `EXPIRADO`
+- ✅ Regras de transição entre estados validadas via exceções
+- ✅ Adição de lances respeitando o valor mínimo
+- ✅ Filtro de leilões por estado e período
+- ✅ Serviço de envio de e-mails simulado (mock)
+- ✅ Remoção de participantes apenas se não houverem lances associados
+- ✅ Testes unitários com cobertura total
 ---
 
 ## 🗂️ Estrutura do Projeto
 
 models/
-│   participante.py
-│   leilao.py
-│   lance.py
-│   gerenciador_leiloes.py
-│
+    participante.py
+    leilao.py
+    lance.py
+    gerenciador_leiloes.py
+
 services/
-│   email_service.py
-│
+    email_service.py
+
 tests/
-│   test_participante.py
-│   test_leilao.py
-│   test_lance.py
-│   test_gerenciador_leiloes.py
-│   test_email_service.py
+    test_participante.py
+    test_leilao.py
+    test_lance.py
+    test_gerenciador_leiloes.py
+    test_email_service.py
 
 ## 🧪 Testes
 
