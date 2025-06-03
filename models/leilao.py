@@ -1,8 +1,5 @@
-# Importa o serviço de envio de e-mails (usado ao finalizar leilão com vencedor)
 from services.email_service import EmailService
-# Importa a classe datetime para manipular datas e horas
 from datetime import datetime
-# Importa ferramentas para criar uma Enumeração (conjunto de constantes nomeadas)
 from enum import Enum, auto
 
 # Enumeração dos possíveis estados de um leilão
