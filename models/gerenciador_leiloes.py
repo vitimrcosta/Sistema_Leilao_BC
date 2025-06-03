@@ -8,13 +8,16 @@ class GerenciadorLeiloes:
         self.leiloes: List[Leilao] = []
         self.participantes: List[Participante] = []
 
+    #Remove um participante, mas apenas se ele não tiver feito lances em nenhum leilão.
     def remover_participante(self, participante):
+        #Verifica em todos os leilões se o participante tem lances (any percorre os lances de cada leilão).
         for leilao in self.leiloes:
             if any(lance.participante == participante for lance in leilao.lances):
                 raise ValueError("Participante não pode ser removido (possui lances)")
         self.participantes.remove(participante)
 
     def adicionar_leilao(self, leilao: Leilao):
+        #Adiciona um novo leilão à lista de leilões.
         self.leiloes.append(leilao)
 
     def listar_leiloes(self, 
