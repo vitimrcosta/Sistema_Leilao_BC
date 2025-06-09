@@ -12,7 +12,7 @@ def test_lance_valido():
     participante = Participante("111.222.333-44", "Maria", "maria@email.com", datetime(1985, 10, 20))
     lance = Lance(1500.0, participante, leilao, agora)
     
-    leilao.adicionar_lance(lance)  # Agora funciona!cls
+    leilao.adicionar_lance(lance)
 
     assert len(leilao.lances) == 1
 

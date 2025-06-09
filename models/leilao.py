@@ -4,16 +4,16 @@ from enum import Enum, auto
 
 # Enumeração dos possíveis estados de um leilão
 class EstadoLeilao(Enum):
-    INATIVO = auto() # Estado inicial do leilão, antes da data de início
-    ABERTO = auto() # Leilão aberto para receber lances
-    FINALIZADO = auto() # Leilão encerrado com pelo menos um lance
-    EXPIRADO = auto() # Leilão encerrado sem nenhum lance
+    INATIVO = auto()    # Estado inicial: o leilão ainda não começou (antes da data_inicio)
+    ABERTO = auto()     # Leilão está em andamento e pode receber lances
+    FINALIZADO = auto() # Leilão foi encerrado com sucesso (pelo menos um lance foi feito)
+    EXPIRADO = auto()   # Leilão foi encerrado sem que nenhum lance tenha sido feito
 
 # Classe que representa um Leilão
 class Leilao:
      # Método construtor: inicializa os dados de um novo leilão
     def __init__(self, nome: str, lance_minimo: float, data_inicio: datetime, data_fim: datetime):
-        # Validação: data de término deve ser depois da data de início
+         # Validação para garantir que a data final não seja anterior à inicial
         if data_fim <= data_inicio:
             raise ValueError("Data de término deve ser posterior à data de início")
         # Atributos básicos do leilão
@@ -64,7 +64,7 @@ class Leilao:
                 Sistema de Leilões
                 """
             )
-            
+
     # Método para adicionar um novo lance no leilão
     def adicionar_lance(self, lance):
         # Leilão deve estar ABERTO
