@@ -35,3 +35,6 @@ Thumbs.db
 build/
 dist/
 *.egg-info/
+
+# Arquivo de teste local
+main.py

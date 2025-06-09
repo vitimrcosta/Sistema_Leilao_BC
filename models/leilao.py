@@ -50,15 +50,21 @@ class Leilao:
         else:
             # Se tiver lances, leilão é finalizado
             self.estado = EstadoLeilao.FINALIZADO
-            if enviar_email:
-                # Identifica o vencedor e envia e-mail parabenizando
-                vencedor = self.identificar_vencedor().participante
-                EmailService.enviar(
-                    vencedor.email,
-                    "Parabéns! Você venceu o leilão",
-                    f"Você arrematou {self.nome} com o lance de R${self.maior_lance:.2f}"
-                )
+            vencedor = max(self.lances, key=lambda lance: lance.valor).participante
+            # Envia e-mail de forma síncrona
+            email_service = EmailService()
+            email_service.enviar(
+                vencedor.email,
+                "Parabéns! Você venceu o leilão",
+                f"""Olá {vencedor.nome},
+            
+                Você venceu o leilão do item '{self.nome}' com o lance de R${max(l.valor for l in self.lances):.2f}.
 
+                Atenciosamente,
+                Sistema de Leilões
+                """
+            )
+            
     # Método para adicionar um novo lance no leilão
     def adicionar_lance(self, lance):
         # Leilão deve estar ABERTO
