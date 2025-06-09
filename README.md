@@ -12,7 +12,10 @@ Este é um projeto de sistema de controle de leilões, desenvolvido como parte d
 - ✅ Regras de transição entre estados validadas via exceções
 - ✅ Adição de lances respeitando o valor mínimo
 - ✅ Filtro de leilões por estado e período
-- ✅ Serviço de envio de e-mails simulado (mock)
+- ✅ Envio automático ao vencedor do leilão
+- ✅ Configuração via SMTP do Gmail
+- ✅ Tratamento de erros de conexão
+- ✅ Uso de senhas de app para serviços Google
 - ✅ Remoção de participantes apenas se não houverem lances associados
 - ✅ Testes unitários com cobertura total
 ---
@@ -63,6 +66,13 @@ Os testes foram escritos com [Pytest](https://docs.pytest.org/) e cobrem os segu
 
    ```bash
    pip install pytest
+   pip install python-dotenv pytest
+
+ - Crie um arquivo .env na raiz do projeto
+ 
+   ```bash
+   EMAIL_USER=seuemail@gmail.com
+   EMAIL_PASSWORD=sua_senha_de_app
 
 ## 🎓 Objetivo Acadêmico
 
