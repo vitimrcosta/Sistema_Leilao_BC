@@ -29,3 +29,10 @@ def test_lance_menor_que_minimo():
     
     # Verifica a mensagem de erro
     assert "Lance deve ser ≥ R$500.00" in str(erro.value)
+
+def test_str_do_lance():
+    participante = Participante("123.456.789-00", "João", "joao@email.com", datetime(1990, 1, 1))
+    leilao = Leilao("TV", 1000.0, datetime.now(), datetime.now() + timedelta(days=1))
+    lance = Lance(1500.0, participante, leilao, datetime.now())
+    
+    assert str(lance) == "Lance de R$1500.00 por João"

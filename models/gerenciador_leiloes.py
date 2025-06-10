@@ -80,7 +80,7 @@ class GerenciadorLeiloes:
     def remover_leilao(self, leilao_id: int):
         """Remove um leilão seguindo as regras"""
 
-         # Busca o leilão pelo ID.
+        # Busca o leilão pelo ID.
         leilao = self._encontrar_leilao_por_id(leilao_id)
 
         # Regra: não pode remover leilões que estejam ABERTOS.
