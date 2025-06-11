@@ -17,9 +17,9 @@ def test_enviar_email_sucesso(email_service):
         
         # Chama o método a ser testado
         email_service.enviar(
-            destinatario="teste@example.com",
+            destinatario="victor@outlook.com",
             assunto="Assunto Teste",
-            mensagem="Corpo do email"
+            mensagem="Testando o email"
         )
         
         # Verificações
@@ -42,9 +42,9 @@ def test_enviar_email_falha_conexao(email_service):
         
         # Testa que não levanta exceção (apenas imprime o erro)
         email_service.enviar(
-            destinatario="teste@example.com",
+            destinatario="victor@outlook.com",
             assunto="Assunto Teste",
-            mensagem="Corpo do email"
+            mensagem="Testado o envio do email"
         )
         
         mock_smtp.assert_called_once()
@@ -59,9 +59,9 @@ def test_enviar_email_falha_autenticacao(email_service):
         )
         
         email_service.enviar(
-            destinatario="teste@example.com",
+            destinatario="victor@outlook.com",
             assunto="Assunto Teste",
-            mensagem="Corpo do email"
+            mensagem="Testando o envio de email"
         )
         
         mock_server.login.assert_called_once()
@@ -74,9 +74,9 @@ def test_enviar_email_falha_envio(email_service):
         mock_server.send_message.side_effect = smtplib.SMTPException("Erro no envio")
         
         email_service.enviar(
-            destinatario="teste@example.com",
+            destinatario="victor@outlook.com",
             assunto="Assunto Teste",
-            mensagem="Corpo do email"
+            mensagem="Testando o envio de email"
         )
         
         mock_server.send_message.assert_called_once()
@@ -87,7 +87,7 @@ def test_conteudo_email_correto(email_service):
         mock_server = MagicMock()
         mock_smtp.return_value.__enter__.return_value = mock_server
         
-        destinatario = "teste@example.com"
+        destinatario = "victor@outlook.com"
         assunto = "Assunto importante"
         mensagem = "Mensagem de teste"
         
