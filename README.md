@@ -54,21 +54,26 @@ Os testes foram escritos com [Pytest](https://docs.pytest.org/) e cobrem os segu
 
 1. Ative seu ambiente virtual (fora da pasta do projeto):
    ```bash
-   venv_leilao\Scripts\activate  # Windows
-   source venv_leilao/bin/activate  # Linux/macOS
-   pytest
+   python -m venv venv         # Cria o ambiente virtual
+   venv\Scripts\activate       # Ativa no Windows
+   
+2. Instalar as bibliotecas
+   ```bash
+   pip install pytest
+   pip install python-dotenv pytest
+
+3. Comandos do pytest para rodar o programa
+   ```bash
+   pytest -v                                      # Executa todos os testes com mais detalhes
+   pytest tests/nome_do_arquivo.py -v             # Executa os testes de um arquivo específico
+   pytest tests/nome_do_arquivo.py::test_funcao   # Executa uma função de teste específica
+   pytest --cov=models --cov-report=term-missing  # Executa os testes com relatório de cobertura
 
 ## 📎 Requisitos
 
 - Python 3.10+
 
-- Pytest
-
-   ```bash
-   pip install pytest
-   pip install python-dotenv pytest
-
- - Crie um arquivo .env na raiz do projeto
+- Crie um arquivo .env na raiz do projeto
  
    ```bash
    EMAIL_USER=seuemail@gmail.com
