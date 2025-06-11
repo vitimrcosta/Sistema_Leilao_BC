@@ -43,8 +43,8 @@ def test_enviar_email_falha_conexao(email_service):
         # Testa que não levanta exceção (apenas imprime o erro)
         email_service.enviar(
             destinatario="victor@outlook.com",
-            assunto="Assunto Teste",
-            mensagem="Testado o envio do email"
+            assunto="Falha conexão SMTP",
+            mensagem="Testa falha na conexão SMTP"
         )
         
         mock_smtp.assert_called_once()
@@ -60,8 +60,8 @@ def test_enviar_email_falha_autenticacao(email_service):
         
         email_service.enviar(
             destinatario="victor@outlook.com",
-            assunto="Assunto Teste",
-            mensagem="Testando o envio de email"
+            assunto="Falha na autenticação",
+            mensagem="Testa falha na autenticação"
         )
         
         mock_server.login.assert_called_once()
@@ -75,8 +75,8 @@ def test_enviar_email_falha_envio(email_service):
         
         email_service.enviar(
             destinatario="victor@outlook.com",
-            assunto="Assunto Teste",
-            mensagem="Testando o envio de email"
+            assunto="Falha no envio da mensagem",
+            mensagem="Testa falha no envio da mensagem"
         )
         
         mock_server.send_message.assert_called_once()
@@ -88,8 +88,8 @@ def test_conteudo_email_correto(email_service):
         mock_smtp.return_value.__enter__.return_value = mock_server
         
         destinatario = "victor@outlook.com"
-        assunto = "Assunto importante"
-        mensagem = "Mensagem de teste"
+        assunto = "Testa o conteúdo"
+        mensagem = "Testa se o conteúdo do email está sendo formatado corretamente"
         
         email_service.enviar(destinatario, assunto, mensagem)
         
