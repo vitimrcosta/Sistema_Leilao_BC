@@ -76,7 +76,7 @@ class GerenciadorLeiloes:
         if novo_lance_minimo:
             leilao.lance_minimo = novo_lance_minimo
 
-    # Remove um leilão do sistema seguindo as seguintes regras:
+    # Remove um leilão do sistema
     def remover_leilao(self, leilao_id: int):
         """Remove um leilão seguindo as regras"""
 

@@ -45,7 +45,7 @@ class Leilao:
             raise ValueError("Leilão não pode ser finalizado antes da data de término.")
         
         # Se não houver lances, leilão expira
-        if not self.lances:
+        if not self.lances: # Verifica se não há lances
             self.estado = EstadoLeilao.EXPIRADO
         else:
             # Se tiver lances, leilão é finalizado

@@ -52,6 +52,26 @@ def test_finalizar_leilao_antes_da_data(leilao_valido):
     with pytest.raises(ValueError, match="antes da data de término"):
         leilao_valido.finalizar(datetime.now())
 
+def test_finalizar_leilao_com_lances(leilao_valido, participante):
+    """Testa se leilão com lances vai para estado FINALIZADO"""
+    leilao_valido.abrir(datetime.now())
+    leilao_valido.adicionar_lance(Lance(600.0, participante, leilao_valido, datetime.now()))
+    
+    # Finaliza após data término (EXIGÊNCIA TESTADA)
+    leilao_valido.finalizar(datetime.now() + timedelta(days=2))
+    
+    assert leilao_valido.estado == EstadoLeilao.FINALIZADO
+
+def test_estado_pos_finalizacao(leilao_valido, participante):
+    """Testa o fluxo completo: INATIVO -> ABERTO -> FINALIZADO"""
+    leilao_valido.abrir(datetime.now())
+    leilao_valido.adicionar_lance(Lance(600.0, participante, leilao_valido, datetime.now()))
+    leilao_valido.finalizar(datetime.now() + timedelta(days=1))
+    
+    # Verifica o estado final (EXIGÊNCIA INDIRETA)
+    assert leilao_valido.estado == EstadoLeilao.FINALIZADO
+    assert leilao_valido.identificar_vencedor().participante == participante
+
 # --- Testes de Lances ---
 
 # Testa se adicionar lance quando o leilão está fechado (não aberto) lança erro
@@ -184,7 +204,7 @@ def test_lances_alternados_participantes_diferentes(leilao_valido, participantes
     # Segundo participante
     leilao_valido.adicionar_lance(Lance(700.0, participantes[1], leilao_valido, datetime.now()))
     
-    # Primeiro participante novamente (agora permitido)
+    # Primeiro participante novamente
     leilao_valido.adicionar_lance(Lance(800.0, participantes[0], leilao_valido, datetime.now()))
     
     assert len(leilao_valido.lances) == 3  # Todos os lances foram aceitos
@@ -196,8 +216,8 @@ def test_identificar_vencedor_com_multiplos_lances(leilao_valido, participantes)
     
     # 2. Adiciona lances em ORDEM CRESCENTE de valores
     leilao_valido.adicionar_lance(Lance(600.0, participantes[0], leilao_valido, datetime.now()))
-    leilao_valido.adicionar_lance(Lance(700.0, participantes[1], leilao_valido, datetime.now()))  # Alterado para 700
-    leilao_valido.adicionar_lance(Lance(800.0, participantes[0], leilao_valido, datetime.now()))  # Alterado para 800
+    leilao_valido.adicionar_lance(Lance(700.0, participantes[1], leilao_valido, datetime.now()))
+    leilao_valido.adicionar_lance(Lance(800.0, participantes[0], leilao_valido, datetime.now()))
     
     # 3. Finaliza o leilão (sem enviar e-mail)
     leilao_valido.finalizar(datetime.now() + timedelta(days=1), enviar_email=False)

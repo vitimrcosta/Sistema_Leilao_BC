@@ -26,6 +26,8 @@ def leilao_aberto():
     leilao.abrir(agora) # Abre o leilão manualmente
     return leilao
 
+# --- Testes de Filtros ---
+
 # Testes para filtro por range de datas
 def test_filtro_por_range_de_datas(gerenciador):
     agora = datetime.now()
@@ -188,6 +190,8 @@ def test_filtro_por_data(gerenciador):
     assert len(resultados) == 1 # Apenas 1 resultado esperado
     assert resultados[0].nome == "Item 2"
 
+# --- Testes de Edição Leilao ---
+
 # Testes de Edição
 def test_edicao_leilao_inativo(gerenciador, leilao_inativo):
     # Adiciona o leilão
@@ -215,6 +219,8 @@ def test_edicao_leilao_aberto_falha(gerenciador, leilao_aberto):
     # Tenta editar leilão aberto (não permitido)
     with pytest.raises(ValueError, match="Só é possível editar leilões INATIVOS"):
         gerenciador.editar_leilao(id(leilao_aberto), novo_nome="Notebook Gamer")
+
+# --- Testes de Remoção Leilao ---
 
 def test_remocao_leilao_com_lances(gerenciador):
     """Testa que não pode remover leilão com lances, mesmo após finalizado"""
@@ -253,6 +259,28 @@ def test_remocao_leilao_inativo_com_lances(gerenciador):
     with pytest.raises(ValueError, match="Não é possível excluir leilões com lances"):
         gerenciador.remover_leilao(id(leilao))
 
+def test_remocao_leilao_aberto_sem_lances(gerenciador):
+    """Testa que não pode remover leilão ABERTO mesmo sem lances"""
+    agora = datetime.now()
+    
+    # Cria um leilão ABERTO sem lances
+    leilao = Leilao("TV Nova", 1500.0, agora - timedelta(hours=1), agora + timedelta(hours=2))
+    leilao.abrir(agora)  # Garante estado ABERTO
+    gerenciador.adicionar_leilao(leilao)
+    
+    # Verifica que o estado está realmente ABERTO
+    assert leilao.estado == EstadoLeilao.ABERTO
+    assert len(leilao.lances) == 0  # Sem lances
+    
+    # Tenta remover (deve falhar)
+    with pytest.raises(ValueError, match="Não é possível excluir leilões ABERTOS"):
+        gerenciador.remover_leilao(id(leilao))
+    
+    # Confirma que o leilão não foi removido
+    assert leilao in gerenciador.leiloes
+
+# --- Testes de Remocao de participantes ---
+
 def test_remover_participante_sem_lances(gerenciador):
     """Testa remoção de participante que não fez lances"""
     participante = Participante("123.456.789-00", "João", "joao@email.com", datetime(1990, 1, 1))
@@ -287,34 +315,10 @@ def test_remover_participante_com_lances(gerenciador):
     # Verifica que o participante ainda está na lista
     assert participante in gerenciador.participantes
 
-def test_remocao_leilao_aberto_sem_lances(gerenciador):
-    """Testa que não pode remover leilão ABERTO mesmo sem lances"""
-    agora = datetime.now()
-    
-    # Cria um leilão ABERTO sem lances
-    leilao = Leilao("TV Nova", 1500.0, agora - timedelta(hours=1), agora + timedelta(hours=2))
-    leilao.abrir(agora)  # Garante estado ABERTO
-    gerenciador.adicionar_leilao(leilao)
-    
-    # Verifica que o estado está realmente ABERTO
-    assert leilao.estado == EstadoLeilao.ABERTO
-    assert len(leilao.lances) == 0  # Sem lances
-    
-    # Tenta remover (deve falhar)
-    with pytest.raises(ValueError, match="Não é possível excluir leilões ABERTOS"):
-        gerenciador.remover_leilao(id(leilao))
-    
-    # Confirma que o leilão não foi removido
-    assert leilao in gerenciador.leiloes
+# --- Testes Encontrar Leilao por ID ---
 
 def test_encontrar_leilao_por_id_inexistente(gerenciador):
     """Testa busca por ID de leilão que não existe (versão simples)"""
     # Usa um ID arbitrário que não existe
     with pytest.raises(ValueError, match="Leilão não encontrado"):
         gerenciador._encontrar_leilao_por_id(999999)  # ID que certamente não existe
-
-def test_remocao_leilao_sem_lances(gerenciador, leilao_inativo):
-    """Testa que pode remover leilão inativo SEM lances"""
-    gerenciador.adicionar_leilao(leilao_inativo)
-    gerenciador.remover_leilao(id(leilao_inativo))
-    assert len(gerenciador.listar_leiloes()) == 0
