@@ -279,6 +279,35 @@ def test_remocao_leilao_aberto_sem_lances(gerenciador):
     # Confirma que o leilão não foi removido
     assert leilao in gerenciador.leiloes
 
+def test_remocao_leilao_inativo_sem_lances(gerenciador, leilao_inativo):
+    """Testa remoção bem-sucedida de leilão INATIVO sem lances"""
+    # Adiciona o leilão ao gerenciador
+    gerenciador.adicionar_leilao(leilao_inativo)
+    
+    # Verifica estado inicial
+    assert len(gerenciador.listar_leiloes()) == 1
+    
+    # Remove o leilão
+    gerenciador.remover_leilao(id(leilao_inativo))
+    
+    # Verifica se foi removido
+    assert len(gerenciador.listar_leiloes()) == 0
+    assert leilao_inativo not in gerenciador.leiloes
+
+def test_remocao_leilao_finalizado_sem_lances(gerenciador):
+    """Testa remoção de leilão FINALIZADO sem lances (deve ser permitido)"""
+    agora = datetime.now()
+    leilao = Leilao("TV", 1000.0, agora - timedelta(days=1), agora + timedelta(days=1))
+    
+    # Abre e finaliza sem adicionar lances (estado EXPIRADO)
+    leilao.abrir(agora)
+    leilao.finalizar(agora + timedelta(days=2), enviar_email=False)
+    
+    gerenciador.adicionar_leilao(leilao)
+    gerenciador.remover_leilao(id(leilao))
+    
+    assert leilao not in gerenciador.leiloes
+
 # --- Testes de Remocao de participantes ---
 
 def test_remover_participante_sem_lances(gerenciador):

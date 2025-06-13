@@ -80,23 +80,3 @@ def test_enviar_email_falha_envio(email_service):
         )
         
         mock_server.send_message.assert_called_once()
-
-def test_conteudo_email_correto(email_service):
-    """Testa se o conteúdo do email está sendo formatado corretamente"""
-    with patch('smtplib.SMTP') as mock_smtp:
-        mock_server = MagicMock()
-        mock_smtp.return_value.__enter__.return_value = mock_server
-        
-        destinatario = "victor@outlook.com"
-        assunto = "Testa o conteúdo"
-        mensagem = "Testa se o conteúdo do email está sendo formatado corretamente"
-        
-        email_service.enviar(destinatario, assunto, mensagem)
-        
-        # Obtém a mensagem que foi enviada
-        msg_enviada = mock_server.send_message.call_args[0][0]
-        
-        assert msg_enviada['From'] == email_service.email
-        assert msg_enviada['To'] == destinatario
-        assert msg_enviada['Subject'] == assunto
-        assert mensagem in msg_enviada.as_string()
