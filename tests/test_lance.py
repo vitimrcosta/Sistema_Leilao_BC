@@ -9,7 +9,7 @@ def test_lance_valido():
     leilao = Leilao("TV 4K", 1000.0, agora - timedelta(days=1), agora + timedelta(days=1))
     leilao.abrir(agora)
     
-    participante = Participante("111.222.333-44", "Maria", "maria@email.com", datetime(1985, 10, 20))
+    participante = Participante("111.222.333-44", "Maria", "victor.rcosta@outlook.com", datetime(1985, 10, 20))
     lance = Lance(1500.0, participante, leilao, agora)
     
     leilao.adicionar_lance(lance)
@@ -20,7 +20,7 @@ def test_lance_menor_que_minimo():
     # Arrange
     leilao = Leilao("Celular", 500.0, datetime.now(), datetime.now() + timedelta(days=1))
     leilao.abrir(datetime.now())
-    participante = Participante("999.888.777-66", "Carlos", "carlos@email.com", datetime(1995, 3, 12))
+    participante = Participante("999.888.777-66", "Carlos", "victor.rcosta@outlook.com", datetime(1995, 3, 12))
     lance_invalido = Lance(300.0, participante, leilao, datetime.now())
     
     # Act/Assert
@@ -32,7 +32,7 @@ def test_lance_menor_que_minimo():
 
 
 def test_str_do_lance():
-    participante = Participante("123.456.789-00", "João", "joao@email.com", datetime(1990, 1, 1))
+    participante = Participante("123.456.789-00", "João", "victor.rcosta@outlook.com", datetime(1990, 1, 1))
     leilao = Leilao("TV", 1000.0, datetime.now(), datetime.now() + timedelta(days=1))
     lance = Lance(1500.0, participante, leilao, datetime.now())
     

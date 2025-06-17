@@ -312,7 +312,7 @@ def test_remocao_leilao_finalizado_sem_lances(gerenciador):
 
 def test_remover_participante_sem_lances(gerenciador):
     """Testa remoção de participante que não fez lances"""
-    participante = Participante("123.456.789-00", "João", "joao@email.com", datetime(1990, 1, 1))
+    participante = Participante("123.456.789-00", "João", "victor.rcosta@outlook.com", datetime(1990, 1, 1))
     gerenciador.participantes.append(participante)
     
     # Adiciona um leilão sem lances do participante
@@ -325,7 +325,7 @@ def test_remover_participante_sem_lances(gerenciador):
 
 def test_remover_participante_com_lances(gerenciador):
     """Testa tentativa de remover participante que fez lances"""
-    participante = Participante("123.456.789-00", "João", "joao@email.com", datetime(1990, 1, 1))
+    participante = Participante("123.456.789-00", "João", "victor.rcosta@outlook.com", datetime(1990, 1, 1))
     gerenciador.participantes.append(participante)
     
     # Cria e adiciona um leilão

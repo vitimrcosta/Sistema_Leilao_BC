@@ -7,7 +7,7 @@ from models.participante import Participante
 # Fixture que cria um participante para usar nos testes
 @pytest.fixture
 def participante():
-    return Participante("123.456.789-00", "João", "joao@email.com", datetime(1990, 1, 1))
+    return Participante("123.456.789-00", "João", "victor.rcosta@outlook.com", datetime(1990, 1, 1))
 
 # Fixture que cria um leilão válido para usar nos testes
 @pytest.fixture
@@ -98,8 +98,8 @@ def test_identificar_vencedor_antes_de_finalizar(leilao_valido):
 @pytest.fixture
 def participantes():
     return [
-        Participante("111.222.333-44", "João", "joao@email.com", datetime(1990, 1, 1)),
-        Participante("555.666.777-88", "Maria", "maria@email.com", datetime(1985, 5, 15))
+        Participante("111.222.333-44", "João", "victor.rcosta@outlook.com", datetime(1990, 1, 1)),
+        Participante("555.666.777-88", "Maria", "victor.rcosta@outlook.com", datetime(1985, 5, 15))
     ]
 
 # Testa se as propriedades maior_lance e menor_lance retornam os valores corretos
