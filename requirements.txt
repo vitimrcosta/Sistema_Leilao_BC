@@ -1,10 +1,31 @@
-colorama==0.4.6
-coverage==7.8.0
-iniconfig==2.1.0
-numpy==2.2.3
-packaging==25.0
-pluggy==1.6.0
-PuLP==3.0.2
+# Sistema de Leilão - Dependências
+
+# === DEPENDÊNCIAS PRINCIPAIS ===
+# Envio de email
+python-dotenv==1.0.1
+
+# === DEPENDÊNCIAS DE TESTE ===
+# Framework de testes
 pytest==8.3.5
 pytest-cov==6.1.1
-scipy==1.15.2
+pytest-mock==3.12.0
+pytest-html==4.1.1
+
+# Cobertura de código
+coverage==7.8.0
+
+# === DEPENDÊNCIAS DE DESENVOLVIMENTO ===
+# Cores no terminal
+colorama==0.4.6
+
+# === DEPENDÊNCIAS DO PYTEST (instaladas automaticamente) ===
+iniconfig==2.1.0
+packaging==25.0
+pluggy==1.6.0
+
+# === DEPENDÊNCIAS CIENTÍFICAS (remover se não usar) ===
+# Comentadas pois não parecem necessárias para o sistema de leilão
+# Descomente apenas se realmente precisar:
+# numpy==2.2.3
+# scipy==1.15.2
+# PuLP==3.0.2
