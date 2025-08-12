@@ -1,95 +1,269 @@
-# 🕹️ Sistema de Leilões
+# 🏆 Sistema de Leilões
 
-Este é um projeto de sistema de controle de leilões, desenvolvido como parte de um trabalho acadêmico. O objetivo principal é implementar as funcionalidades de cadastro e controle de leilões, com **testes unitários cobrindo 100% do código**.
+Este é um projeto de sistema de controle de leilões, desenvolvido como parte de um trabalho acadêmico. O objetivo principal é implementar as funcionalidades de cadastro e controle de leilões com **testes unitários e de integração cobrindo 100% do código**.
 
 ---
 
 ## 📌 Funcionalidades Implementadas
 
-- ✅ Cadastro de participantes com validação de CPF e e-mail
-- ✅ Cadastro de leilões com nome, lance mínimo, data de início e término
-- ✅ Controle de estados do leilão: `INATIVO`, `ABERTO`, `FINALIZADO`, `EXPIRADO`
-- ✅ Regras de transição entre estados validadas via exceções
-- ✅ Adição de lances respeitando o valor mínimo
-- ✅ Filtro de leilões por estado e período
-- ✅ Envio automático ao vencedor do leilão
-- ✅ Configuração via SMTP do Gmail
-- ✅ Tratamento de erros de conexão
-- ✅ Uso de senhas de app para serviços Google
-- ✅ Remoção de participantes apenas se não houverem lances associados
-- ✅ Testes unitários com cobertura total
+- ✅ **Gestão de Participantes**: Cadastro com validação rigorosa de CPF e e-mail
+- ✅ **Controle de Leilões**: Estados automáticos (INATIVO → ABERTO → FINALIZADO/EXPIRADO)
+- ✅ **Sistema de Lances**: Validação de valores mínimos e lances consecutivos
+- ✅ **Filtros Avançados**: Busca por estado, data e período específico
+- ✅ **Notificações Inteligentes**: Serviço de e-mail com múltiplos modos de operação
+- ✅ **Gerenciamento Completo**: Edição e remoção seguindo regras de negócio
+- ✅ **Cobertura de Testes**: Unitários e de integração com 100% de cobertura
+
 ---
 
 ## 🗂️ Estrutura do Projeto
 
 ```
-Sistema de Leilões
-├── Leilão
-│   ├── Estados: INATIVO, ABERTO, FINALIZADO, EXPIRADO
-│   ├── Lances (ordem crescente)
-│   └── Métodos: abrir(), finalizar(), identificar_vencedor()
+Sistema de Leilões/
+├── models/
+│   ├── lance.py                    # Classe Lance com valor e participante
+│   ├── leilao.py                   # Classe Leilao e enum EstadoLeilao
+│   ├── participante.py             # Classe Participante com validações
+│   └── gerenciador_leiloes.py      # Gerenciador principal do sistema
 │
-├── Participante
-│   ├── Validações: CPF, e-mail
-│   └── Restrição: não pode ser removido se tiver lances
+├── services/
+│   └── email_service.py            # Serviço de e-mail inteligente
 │
-└── Gerenciador
-    ├── Filtros: por estado, data
-    └── Controle: participantes e leilões
+├── tests/
+│   ├── conftest.py                 # Configurações globais para os testes de integração
+│   ├── test_detectar_modo.py       # Teste isolado _detectar_modo()
+│   ├── test_email_service.py       # Testes do email service
+│   ├── test_gerenciador_leiloes.py # Testes do gerenciador de leilão
+│   ├── test_integration.py         # Testes de integração para fluxo completo de leilão
+│   ├── test_lance.py               # Testes dos lances do leilão
+│   ├── test_leilao.py              # Testes dos leilões
+│   ├── test_main_block.py          # Teste separado para cobrir o bloco __main__ do email_service.py
+│   └── test_participante.py        # Testes dos participantes
+│
+├── .env                           # Configurações do ambiente
+└── README.md                      # Documentação do projeto
 ```
 
-## 🧪 Testes
+---
 
-Os testes foram escritos com [Pytest](https://docs.pytest.org/) e cobrem os seguintes cenários:
+## 🔧 Configuração do Ambiente (.env)
 
-- Validação de CPF e e-mail de participantes
-- Criação de leilão com estado `INATIVO`
-- Abertura e encerramento de leilões de acordo com regras de data
-- Registro de lances válidos e rejeição de lances abaixo do mínimo
-- Listagem de leilões por estado e por intervalo de datas
-- Proibição de remoção de participantes com lances existentes
-- Envio simulado de e-mail e verificação de saída via `capsys`
+O sistema utiliza um arquivo `.env` para configurar diferentes aspectos da aplicação, especialmente o serviço de e-mail que possui **múltiplos modos de operação**:
 
-### 🔧 Rodando os testes
+### 📧 Configurações de E-mail
 
-1. Ative seu ambiente virtual (fora da pasta do projeto):
-   ```bash
-   python -m venv venv         # Cria o ambiente virtual
-   venv\Scripts\activate       # Ativa no Windows
-   
-2. Instalar as bibliotecas
-   ```bash
-   pip install pytest
-   pip install python-dotenv pytest
+```bash
+# =============================================================================
+# CONFIGURAÇÕES DE EMAIL
+# =============================================================================
 
-3. Comandos do pytest para rodar o programa
-   ```bash
-   pytest -v                                      # Executa todos os testes com mais detalhes
-   pytest tests/nome_do_arquivo.py -v             # Executa os testes de um arquivo específico
-   pytest tests/nome_do_arquivo.py::test_funcao   # Executa uma função de teste específica
-   pytest --cov=models --cov-report=term-missing  # Executa os testes com relatório de cobertura
+# Credenciais do Gmail (para modo PRODUÇÃO)
+EMAIL_USER=seu.email@gmail.com
+EMAIL_PASSWORD=sua_senha_de_app_aqui
 
-## 📎 Requisitos
+# Servidor SMTP
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
 
-- Python 3.10+
+# Modo de operação do sistema de e-mail
+EMAIL_MODE=test  # production | development | test | auto
+```
 
-- Crie um arquivo .env na raiz do projeto
- 
-   ```bash
-   EMAIL_USER=seuemail@gmail.com
-   EMAIL_PASSWORD=sua_senha_de_app
+### 🎯 Modos de Operação do E-mail
+
+| Modo | Descrição | Uso Recomendado |
+|------|-----------|-----------------|
+| **`production`** | Envia e-mails reais via SMTP | Ambiente de produção |
+| **`development`** | Apenas loga e-mails no console | Desenvolvimento local |
+| **`test`** | Simula envio para testes automatizados | Execução de testes |
+| **`auto`** | Detecta automaticamente o melhor modo | Configuração inteligente |
+
+### ⚙️ Outras Configurações
+
+```bash
+# Sistema
+SYSTEM_NAME=Sistema de Leilões
+DEBUG_EMAIL=true
+TIMEZONE=America/Sao_Paulo
+
+# Testes
+TEST_EMAIL=teste@exemplo.com
+TEST_SIMULATE_EMAIL_FAILURES=false
+```
+
+### 🔐 Configuração do Gmail
+
+Para usar o modo `production` com Gmail:
+
+1. Ative a **Verificação em 2 etapas** na sua conta Google
+2. Gere uma **Senha de App** em: [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
+3. Use essa senha no `EMAIL_PASSWORD` (não a senha normal da conta)
+
+---
+
+## 🧪 Sistema de Testes
+
+O projeto implementa uma **estratégia de testes abrangente** com duas camadas:
+
+### 📋 Testes Unitários (`tests/`)
+- **Foco**: Testam classes isoladamente
+- **Cobertura**: Cada método e regra de negócio
+- **Validações**: CPF, e-mail, estados, transições
+- **Exceções**: Todos os cenários de erro mapeados
+
+### 🔗 Testes de Integração (`test_integration.py`)
+- **Foco**: Testam interação entre componentes
+- **Fluxos**: Cenários completos de leilão
+- **Serviços**: Integração com EmailService
+- **Persistência**: Gerenciamento de dados em memória
+
+### 🎯 Cenários de Teste Cobertos
+
+**Participantes:**
+- ✅ Validação de CPF no formato correto (123.456.789-00)
+- ✅ Validação de e-mail com formato válido
+- ✅ Prevenção de remoção quando há lances associados
+
+**Leilões:**
+- ✅ Transições de estado respeitando regras temporais
+- ✅ Abertura apenas após data de início
+- ✅ Finalização automática com envio de e-mail
+- ✅ Expiração quando não há lances
+
+**Lances:**
+- ✅ Validação de valor mínimo
+- ✅ Incremento obrigatório sobre lance anterior
+- ✅ Prevenção de lances consecutivos do mesmo participante
+
+**Gerenciamento:**
+- ✅ Filtros por estado e período
+- ✅ Edição apenas de leilões inativos
+- ✅ Remoção seguindo regras de integridade
+
+---
+
+## 🚀 Como Executar
+
+### 1️⃣ Configuração Inicial
+```bash
+# Clone o repositório
+git clone <url-do-repositorio>
+cd sistema-leiloes
+
+# Crie e ative o ambiente virtual
+python -m venv venv
+venv\Scripts\activate  # Windows
+source venv/Scripts/activate # Linux/Mac/gitbash
+
+# Instale as dependências
+pip install -r requirements.txt
+```
+
+### 2️⃣ Configuração do Ambiente
+```bash
+# Crie o arquivo .env na raiz do projeto
+cp .env.example .env
+
+# Edite as configurações conforme necessário
+# Para desenvolvimento, pode deixar EMAIL_MODE=development
+```
+
+### 3️⃣ Executando os Testes
+
+```bash
+# Todos os testes com relatório detalhado
+pytest -v
+
+# Apenas testes unitários
+pytest tests -v
+
+# Apenas testes de integração  
+pytest tests/test_integration.py -v
+
+# Com relatório de cobertura
+pytest --cov=models --cov=services --cov-report=term-missing
+
+# Teste específico
+pytest tests/test_leilao.py::test_abrir_leilao -v
+```
+
+### 4️⃣ Verificando Cobertura
+```bash
+# Relatório detalhado de cobertura
+pytest --cov=models --cov=services --cov-report=html
+
+# Abre relatório HTML no navegador
+# Arquivo gerado em: htmlcov/index.html
+```
+
+---
+
+## 🏗️ Arquitetura do Sistema
+
+### 📦 Modelos de Domínio
+- **`Lance`**: Valor, participante, leilão e timestamp
+- **`Participante`**: CPF, nome, e-mail com validações
+- **`Leilao`**: Estados, datas, lances e regras de transição
+- **`GerenciadorLeiloes`**: Operações CRUD e filtros
+
+### 🔧 Serviços
+- **`EmailService`**: Sistema inteligente de notificações
+  - Detecção automática de ambiente
+  - Múltiplos modos de operação
+  - Tratamento robusto de erros
+  - Logs detalhados para debug
+
+### 📊 Estados do Leilão
+```
+INATIVO → ABERTO → FINALIZADO
+    ↓         ↓
+    ✗      EXPIRADO
+```
+
+---
+
+## 🎯 Destaques Técnicos
+
+### 🛡️ Validações Robustas
+- **Regex para CPF**: Formato brasileiro obrigatório
+- **Regex para E-mail**: Validação básica de estrutura
+- **Datas**: Prevenção de períodos inválidos
+
+### 🔄 Tratamento de Exceções
+- **ValueError**: Para regras de negócio violadas
+- **Estados Inválidos**: Transições não permitidas
+- **Dados Inconsistentes**: Validação na entrada
+
+### 📈 Facilidade de Teste
+- **Mocks**: Para isolamento de dependências
+- **Fixtures**: Dados padronizados para testes
+- **Parametrização**: Múltiplos cenários automatizados
+
+---
 
 ## 🎓 Objetivo Acadêmico
 
-Este sistema foi desenvolvido com o propósito de aplicar e demonstrar:
+Este sistema foi desenvolvido para demonstrar:
 
-- Princípios de programação orientada a objetos
-- Tratamento de exceções
-- Boas práticas com testes unitários automatizados
-- Separação de responsabilidades entre entidades, serviços e regras de negócio
+- **Programação Orientada a Objetos**: Classes bem estruturadas
+- **Testes Automatizados**: Cobertura completa e estratégias diferenciadas
+- **Tratamento de Exceções**: Validações robustas
+- **Separação de Responsabilidades**: Arquitetura limpa
+- **Boas Práticas**: Código limpo e documentado
 
-## 👨‍💻 Autor
+---
 
-Desenvolvido por Victor, Roberta, Luiz.
-Para dúvidas ou sugestões, envie um e-mail para victor.rcosta@outlook.com.
+## 👥 Equipe de Desenvolvimento
 
+Desenvolvido por **Victor, Roberta e Luiz**.
+
+📧 Para dúvidas ou sugestões: **victor.rcosta@outlook.com**
+
+---
+
+## 🔒 Importante
+
+- **Nunca** commite o arquivo `.env` com credenciais reais
+- Use **Senhas de App** para Gmail, não a senha da conta
+- Em **desenvolvimento**, use `EMAIL_MODE=development` para apenas logar e-mails
+- Os **testes** executam em modo simulação automaticamente

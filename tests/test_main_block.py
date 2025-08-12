@@ -1,11 +1,6 @@
 """
 Teste separado para cobrir o bloco __main__ do email_service.py
 
-Execute este teste SEPARADAMENTE:
-python tests/test_main_block.py
-
-Ou com pytest:
-pytest tests/test_main_block.py -v
 """
 
 import subprocess

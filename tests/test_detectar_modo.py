@@ -1,8 +1,6 @@
 """
 Teste isolado para cobrir linhas 75-83 do _detectar_modo()
 
-Execute este teste separadamente se necessário:
-python tests/test_detectar_modo.py
 """
 
 import os
