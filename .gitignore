@@ -37,7 +37,6 @@ dist/
 *.egg-info/
 
 # Arquivo de teste local
-main.py
 .coverage
 check_coverage.py
 main_simple.py
