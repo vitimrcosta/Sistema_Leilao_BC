@@ -794,34 +794,23 @@ class TestDeteccaoModoCompleta:
                     assert service.modo == 'test'
     
     def test_modo_producao_com_credenciais_forcado(self):
-        """Força execução da linha 79-80 (credenciais completas)"""
-        # Preparar ambiente sem pytest e sem CI
-        with patch.dict(os.environ, {}, clear=True):
-            # Adicionar credenciais válidas
-            os.environ['EMAIL_USER'] = 'test@example.com'
-            os.environ['EMAIL_PASSWORD'] = 'senha123'
-            
-            # Mockar sys.modules para remover pytest
-            fake_modules = {'os': os, 'sys': sys}  # Módulos mínimos
-            
-            with patch.dict('sys.modules', fake_modules, clear=True):
-                # Criar serviço que detectará produção
-                from services.email_service import EmailService as ES
-                
-                # Mockar o método _detectar_modo para testar apenas essa parte
-                with patch.object(ES, '_detectar_modo') as mock_detectar:
-                    def detectar_custom(self):
-                        # Simular detecção sem pytest
-                        if 'pytest' not in sys.modules and 'PYTEST_CURRENT_TEST' not in os.environ:
-                            # Verificar CI
-                            if not any(ci_var in os.environ for ci_var in ['CI', 'GITHUB_ACTIONS', 'TRAVIS', 'JENKINS']):
-                                # Verificar credenciais (linha 79-80)
-                                if self.email and self.password and '@' in self.email:
-                                    return 'production'
-                        return 'development'
-                    
-                    mock_detectar.side_effect = detectar_custom
-                    service = ES(modo='auto')
+        """Testa a detecção do modo de produção em um ambiente controlado."""
+        from services.email_service import EmailService
+
+        # Crie uma instância do serviço sem chamar o __init__
+        service = EmailService.__new__(EmailService)
+        service.email = 'test@example.com'
+        service.password = 'senha123'
+
+        # Mock as condições para simular um ambiente de produção
+        with patch('services.email_service.sys.modules', {}), \
+             patch.dict(os.environ, {}, clear=True):
+
+            # Chame o método _detectar_modo diretamente
+            modo_detectado = service._detectar_modo()
+
+            # Verifique se o modo correto foi detectado
+            assert modo_detectado == 'production'
     
     def test_modo_development_padrao_forcado(self):
         """Força execução da linha 83 (return 'development')"""

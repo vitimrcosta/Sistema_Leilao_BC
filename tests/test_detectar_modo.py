@@ -30,86 +30,64 @@ def test_detectar_modo_linha_por_linha():
     service.debug = False
     service.emails_enviados = 0
     service.emails_falharam = 0
-    
+
+    # Helper to run a check in a clean environment
+    def run_check(env_vars_to_set):
+        original_modules = sys.modules.copy()
+        pytest_modules = [m for m in sys.modules if 'pytest' in m.lower()]
+        for mod in pytest_modules:
+            sys.modules.pop(mod, None)
+        
+        original_environ = os.environ.copy()
+        for key in ['CI', 'GITHUB_ACTIONS', 'TRAVIS', 'JENKINS', 'PYTEST_CURRENT_TEST']:
+            if key in os.environ:
+                del os.environ[key]
+
+        for k, v in env_vars_to_set.items():
+            os.environ[k] = v
+        
+        try:
+            return service._detectar_modo()
+        finally:
+            sys.modules.update(original_modules)
+            os.environ.clear()
+            os.environ.update(original_environ)
+
     print("\n1. Testando com CI=true (linha 75-76)")
-    os.environ['CI'] = 'true'
-    service.email = None
-    service.password = None
-    resultado = service._detectar_modo()
+    resultado = run_check({'CI': 'true'})
     print(f"   Resultado: {resultado}")
     assert resultado == 'test'
-    del os.environ['CI']
-    
+
     print("\n2. Testando com GITHUB_ACTIONS=true (linha 75-76)")
-    os.environ['GITHUB_ACTIONS'] = 'true'
-    resultado = service._detectar_modo()
+    resultado = run_check({'GITHUB_ACTIONS': 'true'})
     print(f"   Resultado: {resultado}")
     assert resultado == 'test'
-    del os.environ['GITHUB_ACTIONS']
-    
+
     print("\n3. Testando com TRAVIS=true (linha 75-76)")
-    os.environ['TRAVIS'] = 'true'
-    resultado = service._detectar_modo()
+    resultado = run_check({'TRAVIS': 'true'})
     print(f"   Resultado: {resultado}")
     assert resultado == 'test'
-    del os.environ['TRAVIS']
-    
+
     print("\n4. Testando com JENKINS=true (linha 75-76)")
-    os.environ['JENKINS'] = 'true'
-    resultado = service._detectar_modo()
+    resultado = run_check({'JENKINS': 'true'})
     print(f"   Resultado: {resultado}")
     assert resultado == 'test'
-    del os.environ['JENKINS']
-    
+
     print("\n5. Testando com credenciais completas (linha 79-80)")
-    # Limpar variáveis CI
-    for var in ['CI', 'GITHUB_ACTIONS', 'TRAVIS', 'JENKINS', 'PYTEST_CURRENT_TEST']:
-        os.environ.pop(var, None)
-    
-    # Configurar credenciais válidas
     service.email = 'test@example.com'
     service.password = 'senha123'
-    
-    # Temporariamente remover pytest dos módulos
-    original_modules = sys.modules.copy()
-    pytest_modules = [m for m in sys.modules if 'pytest' in m.lower()]
-    
-    for mod in pytest_modules:
-        sys.modules.pop(mod, None)
-    
-    try:
-        resultado = service._detectar_modo()
-        print(f"   Resultado: {resultado}")
-        # Se não há pytest, deve retornar 'production'
-        # Se há pytest, retorna 'test' mas a linha foi executada
-    finally:
-        # Restaurar módulos
-        sys.modules.update(original_modules)
+    resultado = run_check({})
+    print(f"   Resultado: {resultado}")
+    assert resultado == 'production'
     
     print("\n6. Testando sem credenciais (linha 83)")
     service.email = None
     service.password = None
-    
-    # Remover todas as variáveis que podem afetar
-    for var in ['CI', 'GITHUB_ACTIONS', 'TRAVIS', 'JENKINS', 'PYTEST_CURRENT_TEST']:
-        os.environ.pop(var, None)
-    
-    # Temporariamente fingir que não há pytest
-    pytest_modules = [m for m in sys.modules if 'pytest' in m.lower()]
-    for mod in pytest_modules:
-        sys.modules.pop(mod, None)
-    
-    try:
-        resultado = service._detectar_modo()
-        print(f"   Resultado: {resultado}")
-        # Deve retornar 'development' se não há pytest
-        # ou 'test' se detectar pytest
-    finally:
-        # Restaurar
-        sys.modules.update(original_modules)
-    
+    resultado = run_check({})
+    print(f"   Resultado: {resultado}")
+    assert resultado == 'development'
+
     print("\n✅ Todas as linhas 75-83 foram executadas!")
-    return True
 
 
 if __name__ == "__main__":
