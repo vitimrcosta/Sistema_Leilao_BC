@@ -41,7 +41,8 @@ Sistema de Leilões/
 │   └── test_participante.py        # Testes dos participantes
 │
 ├── .env                           # Configurações do ambiente
-└── README.md                      # Documentação do projeto
+├── README.md                      # Documentação do projeto
+└── requirements.txt               # Arquivo de instalação das dependencias
 ```
 
 ---
