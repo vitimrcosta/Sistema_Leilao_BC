@@ -80,16 +80,20 @@ class TestIntegracaoFluxoCompletoLeilao:
         assert leilao_com_lances.menor_lance == 2100.0
         
         # 4. Finalizar leilão (com mock do email)
-        with patch.object(EmailService, 'enviar') as mock_email:
+        with patch.object(EmailService, 'enviar') as mock_enviar:
             gerenciador.finalizar_leilao(leilao.id, agora + timedelta(minutes=2))
-            
+    
             # Verificar integração com EmailService
-            assert mock_email.called
-            args = mock_email.call_args[0]  # Argumentos da chamada
-            assert args[0] == "joao@email.com"  # Email do vencedor
-            assert "Parabéns! Você venceu" in args[1]  # Assunto
-            assert "João Silva" in args[2]  # Nome no corpo
-            assert "R$2700.00" in args[2]  # Valor no corpo
+            mock_enviar.assert_called_once()
+            call_args, call_kwargs = mock_enviar.call_args
+            
+            assert call_args[0] == "joao@email.com"  # Destinatário
+            assert call_args[1] == "Parabéns! Você venceu o leilão"  # Assunto
+            assert call_args[2] == "email_template.html"  # Template
+            assert isinstance(call_args[3], dict)  # Dados
+            assert call_args[3]['nome_vencedor'] == "João Silva"
+            assert call_args[3]['nome_item'] == "iPhone 15 Pro"
+            assert call_args[3]['valor_lance'] == "2700.00"
         
         # 5. Verificar estado final
         leilao_finalizado = gerenciador.encontrar_leilao_por_id(leilao.id)
@@ -278,22 +282,22 @@ class TestIntegracaoEmailService:
         gerenciador.adicionar_lance(leilao.id, lance)
         
         # Mock do EmailService para simular sucesso
-        with patch.object(EmailService, 'enviar') as mock_email:
-            mock_email.return_value = None  # Simula sucesso
+        with patch.object(EmailService, 'enviar') as mock_enviar:
+            mock_enviar.return_value = {'sucesso': True, 'modo': 'test'}
             
-            # Finalizar (deve tentar enviar email)
             gerenciador.finalizar_leilao(leilao.id, datetime.now() + timedelta(minutes=2))
             
             # Verificar se email foi chamado corretamente
-            assert mock_email.call_count == 1
-            call_args = mock_email.call_args[0]
+            mock_enviar.assert_called_once()
+            call_args, call_kwargs = mock_enviar.call_args
             
-            # Verificar parâmetros do email
             assert call_args[0] == "teste@email.com"  # Destinatário correto
             assert "Parabéns" in call_args[1]  # Assunto
-            assert "João Teste" in call_args[2]  # Nome no corpo
-            assert "1200.00" in call_args[2]  # Valor no corpo
-            assert "Produto Email Test" in call_args[2]  # Nome do item
+            assert call_args[2] == "email_template.html"
+            assert isinstance(call_args[3], dict)
+            assert call_args[3]['nome_vencedor'] == "João Teste"
+            assert call_args[3]['nome_item'] == "Produto Email Test"
+            assert call_args[3]['valor_lance'] == "1200.00"
     
     def test_integracao_email_falha_nao_impede_finalizacao(self, leilao_com_email):
         """Testa que falha no email não impede finalização do leilão"""

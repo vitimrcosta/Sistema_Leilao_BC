@@ -19,7 +19,8 @@ class TestEmailServiceModos:
         resultado = service.enviar(
             "vencedor@teste.com",
             "Parabéns! Você venceu o leilão",
-            "Mensagem de teste"
+            "email_template.html",
+            {}
         )
         
         assert resultado['sucesso'] is True
@@ -37,7 +38,8 @@ class TestEmailServiceModos:
         resultado = service.enviar(
             "fail@teste.com",
             "Email com falha",
-            "Este deve falhar"
+            "email_template.html",
+            {}
         )
         
         assert resultado['sucesso'] is False
@@ -53,7 +55,8 @@ class TestEmailServiceModos:
         resultado = service.enviar(
             "dev@teste.com",
             "Email de desenvolvimento",
-            "Esta é uma mensagem de teste em modo desenvolvimento"
+            "email_template.html",
+            {}
         )
         
         # Capturar saída do console
@@ -118,9 +121,9 @@ class TestEmailServiceConfiguracao:
         service = EmailService(modo='test')
         
         # Enviar alguns emails
-        service.enviar("test1@teste.com", "Assunto 1", "Mensagem 1")
-        service.enviar("fail@teste.com", "Falha", "Deve falhar")  # Falha simulada
-        service.enviar("test2@teste.com", "Assunto 2", "Mensagem 2")
+        service.enviar("test1@teste.com", "Assunto 1", "email_template.html", {})
+        service.enviar("fail@teste.com", "Falha", "email_template.html", {})  # Falha simulada
+        service.enviar("test2@teste.com", "Assunto 2", "email_template.html", {})
         
         stats = service.obter_estatisticas()
         
@@ -149,7 +152,8 @@ class TestEmailServiceProducao:
         resultado = service.enviar(
             "vencedor@real.com",
             "Parabéns pelo leilão!",
-            "Você venceu o iPhone 15 Pro com lance de R$2700.00"
+            "email_template.html",
+            {}
         )
         
         assert resultado['sucesso'] is True
@@ -178,7 +182,8 @@ class TestEmailServiceProducao:
         resultado = service.enviar(
             "teste@erro.com",
             "Este deve falhar",
-            "Mensagem de teste"
+            "email_template.html",
+            {}
         )
         
         assert resultado['sucesso'] is False
@@ -202,7 +207,8 @@ class TestEmailServiceProducao:
         resultado = service.enviar(
             "email_invalido@",
             "Teste destinatário inválido",
-            "Esta mensagem deve falhar"
+            "email_template.html",
+            {}
         )
         
         assert resultado['sucesso'] is False
@@ -243,20 +249,22 @@ class TestEmailServiceIntegracao:
         
         # Finalizar leilão (vai tentar enviar email)
         # Como estamos em modo test, o email será simulado
-        with patch.object(EmailService, '__init__', return_value=None) as mock_init:
-            with patch.object(EmailService, 'enviar') as mock_enviar:
-                mock_enviar.return_value = {'sucesso': True, 'modo': 'test'}
-                
-                gerenciador.finalizar_leilao(leilao.id, agora + timedelta(minutes=2))
-                
-                # Verificar se tentou enviar email
-                mock_enviar.assert_called_once()
-                call_args = mock_enviar.call_args[0]
-                
-                assert call_args[0] == "joao.vencedor@teste.com"
-                assert "Parabéns" in call_args[1]
-                assert "João Vencedor" in call_args[2]
-                assert "2500.00" in call_args[2]
+        with patch.object(EmailService, 'enviar') as mock_enviar:
+            mock_enviar.return_value = {'sucesso': True, 'modo': 'test'}
+            
+            gerenciador.finalizar_leilao(leilao.id, agora + timedelta(minutes=2))
+            
+            # Verificar se tentou enviar email
+            mock_enviar.assert_called_once()
+            call_args, call_kwargs = mock_enviar.call_args
+            
+            assert call_args[0] == "joao.vencedor@teste.com"
+            assert "Parabéns" in call_args[1]
+            assert call_args[2] == "email_template.html"
+            assert isinstance(call_args[3], dict)
+            assert call_args[3]['nome_vencedor'] == "João Vencedor"
+            assert call_args[3]['nome_item'] == "iPhone 15 Pro - Teste Integração"
+            assert call_args[3]['valor_lance'] == "2500.00"
         
         leilao_finalizado = gerenciador.encontrar_leilao_por_id(leilao.id)
         assert leilao_finalizado.estado == EstadoLeilao.FINALIZADO
@@ -266,7 +274,8 @@ class TestEmailServiceIntegracao:
         sucesso = enviar_email_rapido(
             "teste@rapido.com",
             "Teste função rápida",
-            "Esta é uma mensagem via função auxiliar",
+            "email_template.html",
+            {},
             modo='test'
         )
         
@@ -286,15 +295,15 @@ class TestEmailServiceCompleto:
         
         # Enviar vários emails
         emails = [
-            ("user1@teste.com", "Assunto 1", "Mensagem 1"),
-            ("user2@teste.com", "Assunto 2", "Mensagem 2"),
-            ("fail@teste.com", "Falha", "Este deve falhar"),
-            ("user3@teste.com", "Assunto 3", "Mensagem 3"),
+            ("user1@teste.com", "Assunto 1", "email_template.html", {}),
+            ("user2@teste.com", "Assunto 2", "email_template.html", {}),
+            ("fail@teste.com", "Falha", "email_template.html", {}),
+            ("user3@teste.com", "Assunto 3", "email_template.html", {}),
         ]
         
         resultados = []
-        for dest, assunto, msg in emails:
-            resultado = service.enviar(dest, assunto, msg)
+        for dest, assunto, template, dados in emails:
+            resultado = service.enviar(dest, assunto, template, dados)
             resultados.append(resultado)
         
         # Verificar resultados
@@ -314,7 +323,7 @@ class TestEmailServiceCompleto:
     def test_representacao_string(self):
         """Testa representação string do EmailService"""
         service = EmailService(modo='test')
-        service.enviar("test@exemplo.com", "Teste", "Mensagem")
+        service.enviar("test@exemplo.com", "Teste", "email_template.html", {})
         
         str_repr = str(service)
         assert "EmailService" in str_repr
@@ -352,7 +361,8 @@ class TestEmailServiceConfiguracoesAvancadas:
         resultado = service.enviar(
             "qualquer@email.com",
             "Assunto normal",
-            "Mensagem normal"
+            "email_template.html",
+            {}
         )
         
         assert resultado['sucesso'] is False
@@ -366,7 +376,7 @@ class TestEmailServiceCenariosCriticos:
         """Testa comportamento com dados vazios"""
         service = EmailService(modo='test')
         
-        resultado = service.enviar("", "", "")
+        resultado = service.enviar("", "", "email_template.html", {})
         
         # Deve funcionar mesmo com dados vazios em modo test
         assert resultado['sucesso'] is True
@@ -376,11 +386,12 @@ class TestEmailServiceCenariosCriticos:
         """Testa email com mensagem muito longa"""
         service = EmailService(modo='test')
         
-        mensagem_longa = "A" * 10000  # 10KB de texto
+        dados = {'mensagem': "A" * 10000}  # 10KB de texto
         resultado = service.enviar(
             "teste@longo.com",
             "Mensagem longa",
-            mensagem_longa
+            "email_template.html",
+            dados
         )
         
         assert resultado['sucesso'] is True
@@ -392,7 +403,8 @@ class TestEmailServiceCenariosCriticos:
         resultado = service.enviar(
             "joão@açúcar.com.br",
             "Parabéns! Você venceu o leilão! 🎉",
-            "Olá João,\n\nVocê venceu o leilão de R$ 1.500,00!\n\nParabéns! 🏆"
+            "email_template.html",
+            {}
         )
         
         assert resultado['sucesso'] is True
@@ -404,8 +416,8 @@ class TestEmailServiceCenariosCriticos:
         service2 = EmailService(modo='development')
         
         # Cada instância deve manter suas próprias estatísticas
-        service1.enviar("test1@exemplo.com", "Teste 1", "Mensagem 1")
-        service2.enviar("test2@exemplo.com", "Teste 2", "Mensagem 2")
+        service1.enviar("test1@exemplo.com", "Teste 1", "email_template.html", {})
+        service2.enviar("test2@exemplo.com", "Teste 2", "email_template.html", {})
         
         stats1 = service1.obter_estatisticas()
         stats2 = service2.obter_estatisticas()
@@ -437,7 +449,7 @@ class TestEmailServiceCoberturaAdicional:
                 mock_smtp.return_value.__enter__.return_value = mock_server
                 
                 service = EmailService(modo='production')
-                service.enviar("test@timeout.com", "Teste Timeout", "Mensagem")
+                service.enviar("test@timeout.com", "Teste Timeout", "email_template.html", {})
                 
                 # Verificar se timeout foi passado corretamente
                 mock_smtp.assert_called_with('smtp.gmail.com', 587, timeout=30)
@@ -456,7 +468,8 @@ class TestEmailServiceCoberturaAdicional:
                 resultado = service.enviar(
                     "test@utf8.com", 
                     "Teste com acentos: ção, ã, é",
-                    "Mensagem com caracteres especiais: ç, ã, õ, €, ñ"
+                    "email_template.html",
+                    {}
                 )
                 
                 assert resultado['sucesso'] is True
@@ -478,7 +491,7 @@ class TestEmailServiceCoberturaAdicional:
                     mock_smtp.return_value.__enter__.return_value = mock_server
                     
                     service = EmailService(modo='production')
-                    service.enviar("test@from.com", "Teste From", "Mensagem")
+                    service.enviar("test@from.com", "Teste From", "email_template.html", {})
                     
                     # Verificar se From foi configurado com system_name
                     mock_msg.__setitem__.assert_any_call('From', 'Leilões Premium <test@gmail.com>')
@@ -488,9 +501,9 @@ class TestEmailServiceCoberturaAdicional:
         service = EmailService(modo='test')
         
         # Enviar múltiplos emails
-        service.enviar("test1@contador.com", "Email 1", "Mensagem 1")  # Sucesso
-        service.enviar("fail@contador.com", "Email fail", "Mensagem 2")  # Falha
-        service.enviar("test3@contador.com", "Email 3", "Mensagem 3")  # Sucesso
+        service.enviar("test1@contador.com", "Email 1", "email_template.html", {})  # Sucesso
+        service.enviar("fail@contador.com", "Email fail", "email_template.html", {})  # Falha
+        service.enviar("test3@contador.com", "Email 3", "email_template.html", {})  # Sucesso
         
         stats = service.obter_estatisticas()
         assert stats['emails_enviados'] == 2
@@ -508,8 +521,8 @@ class TestEmailServiceCoberturaAdicional:
         assert "falharam=0" in str_inicial
         
         # Após envios
-        service.enviar("test@str.com", "Teste", "Mensagem")
-        service.enviar("fail@str.com", "Falha", "Mensagem")
+        service.enviar("test@str.com", "Teste", "email_template.html", {})
+        service.enviar("fail@str.com", "Falha", "email_template.html", {})
         
         str_final = str(service)
         assert "enviados=1" in str_final
@@ -569,7 +582,7 @@ class TestEmailServiceCobertura100Porcento:
         service = EmailService(modo='test')
         
         with patch.object(service, '_enviar_teste', side_effect=RuntimeError("Erro runtime")):
-            resultado = service.enviar("test@example.com", "Teste", "Mensagem")
+            resultado = service.enviar("test@example.com", "Teste", "email_template.html", {})
             
             assert resultado['sucesso'] is False
             assert 'Erro runtime' in resultado['erro']
@@ -588,7 +601,7 @@ class TestEmailServiceCobertura100Porcento:
         mock_server.send_message.side_effect = smtplib.SMTPException("Erro SMTP")
         
         service = EmailService(modo='production')
-        resultado = service.enviar("test@smtp.com", "Teste", "Msg")
+        resultado = service.enviar("test@smtp.com", "Teste", "email_template.html", {})
         
         assert resultado['sucesso'] is False
         assert 'Erro SMTP' in resultado['erro']
@@ -606,7 +619,7 @@ class TestEmailServiceCobertura100Porcento:
         mock_server.send_message.side_effect = RuntimeError("Erro runtime")
         
         service = EmailService(modo='production')
-        resultado = service.enviar("test@error.com", "Teste", "Msg")
+        resultado = service.enviar("test@error.com", "Teste", "email_template.html", {})
         
         assert resultado['sucesso'] is False
         assert 'Erro inesperado' in resultado['erro']
@@ -656,10 +669,17 @@ print("\nTeste de configuração:")
 for detalhe in config_test['detalhes']:
     print(f"  {detalhe}")
 
+dados_teste = {
+    'nome_vencedor': 'Victor',
+    'nome_item': 'iPhone 15 Pro',
+    'valor_lance': '6000.00',
+    'ano': datetime.now().year
+}
 resultado = service.enviar(
     "teste@exemplo.com",
     "Teste do Sistema de Leilões",
-    "Este é um email de teste do sistema."
+    "email_template.html",
+    dados_teste
 )
 
 print(f"\nResultado do teste de envio:")
@@ -696,8 +716,8 @@ class TestEmailServiceEdgeCasesAdicionais:
         """Verifica se os logs de erro são chamados corretamente"""
         service = EmailService(modo='test')
         
-        with patch.object(service, '_enviar_teste', side_effect=Exception("Teste de log")):
-            service.enviar("test@log.com", "Teste", "Mensagem")
+        with patch.object(service, '_enviar_teste', side_effect=RuntimeError("Erro runtime")):
+            service.enviar("test@log.com", "Teste", "email_template.html", {})
             
             # Verificar que o logger foi chamado
             assert mock_logger.called
@@ -709,7 +729,7 @@ class TestEmailServiceEdgeCasesAdicionais:
             assert service.debug is True
             
             # Testar envio com debug
-            service.enviar("debug@test.com", "Debug Test", "Mensagem")
+            service.enviar("debug@test.com", "Debug Test", "email_template.html", {})
             
             # Em modo test com debug, deve logar informações
     
@@ -723,7 +743,7 @@ class TestEmailServiceEdgeCasesAdicionais:
                 mock_smtp.side_effect = TimeoutError("Connection timeout")
                 
                 service = EmailService(modo='production')
-                resultado = service.enviar("test@timeout.com", "Teste", "Mensagem")
+                resultado = service.enviar("test@timeout.com", "Teste", "email_template.html", {})
                 
                 assert resultado['sucesso'] is False
                 assert service.emails_falharam == 1        
@@ -756,7 +776,8 @@ class TestMainBlockSimples:
         resultado = service.enviar(
             "teste@exemplo.com",
             "Teste do Sistema de Leilões",
-            "Este é um email de teste do sistema."
+            "email_template.html",
+            {}
         )
         
         # Linha 330-332
@@ -772,6 +793,7 @@ class TestMainBlockSimples:
         captured = capsys.readouterr()
         assert "Testando EmailService" in captured.out
         assert "Modo detectado:" in captured.out
+        assert "Teste de configuração:" in captured.out
 
 class TestDeteccaoModoCompleta:
     """Testes para cobrir completamente as linhas 75-83 da detecção de modo"""
@@ -780,7 +802,6 @@ class TestDeteccaoModoCompleta:
         """Testa detecção de CI forçando condições específicas"""
         # Limpar completamente o ambiente
         with patch.dict(os.environ, {}, clear=True):
-            # Adicionar apenas a variável CI
             with patch.dict(os.environ, {'CI': 'true'}):
                 # Remover pytest dos módulos
                 original_modules = sys.modules.copy()
@@ -880,7 +901,7 @@ class TestDeteccaoModoCompleta:
             service.emails_falharam = 0
             
             # Executar _detectar_modo diretamente para cobrir linha 79-80
-            # Mesmo em pytest, o código será executado
+            # O resultado será 'test' por causa do pytest, mas a linha foi executada
             resultado = service._detectar_modo()
             # O resultado será 'test' por causa do pytest, mas a linha foi executada
             assert resultado in ['test', 'production', 'development']

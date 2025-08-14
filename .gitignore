@@ -42,3 +42,6 @@ dist/
 check_coverage.py
 main_simple.py
 manual_test_email.py
+
+# Arquivo do banco de dados
+leilao.db

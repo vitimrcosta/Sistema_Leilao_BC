@@ -51,12 +51,13 @@ def test_main_block_alternative():
     """Teste alternativo que importa e executa o código diretamente"""
     import io
     import contextlib
+    from datetime import datetime
     
     # Capturar stdout
     f = io.StringIO()
     
     # Código do bloco __main__
-    code = """
+    code = r"""
 import sys
 import os
 sys.path.insert(0, '.')
@@ -69,24 +70,30 @@ print(f"Modo detectado: {service.modo}")
 
 # Testar configuração
 config_test = service.testar_configuracao()
-print("\\nTeste de configuração:")
+print("\nTeste de configuração:")
 for detalhe in config_test['detalhes']:
     print(f"  {detalhe}")
 
-# Teste de envio
+dados_teste = {
+    'nome_vencedor': 'Victor',
+    'nome_item': 'iPhone 15 Pro',
+    'valor_lance': '6000.00',
+    'ano': datetime.now().year
+}
 resultado = service.enviar(
     "teste@exemplo.com",
     "Teste do Sistema de Leilões",
-    "Este é um email de teste do sistema."
+    "email_template.html",
+    dados_teste
 )
 
-print(f"\\nResultado do teste de envio:")
+print(f"\nResultado do teste de envio:")
 print(f"  Sucesso: {resultado['sucesso']}")
 print(f"  Modo: {resultado['modo']}")
 
 # Estatísticas
 stats = service.obter_estatisticas()
-print(f"\\nEstatísticas: {stats}")
+print(f"\nEstatísticas: {stats}")
 """
     
     with contextlib.redirect_stdout(f):

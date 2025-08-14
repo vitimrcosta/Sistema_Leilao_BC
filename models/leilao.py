@@ -66,17 +66,18 @@ class Leilao(Base):
             vencedor = max(self.lances, key=lambda lance: lance.valor).participante
             # Envia e-mail de forma síncrona
             email_service = EmailService()
-            email_service.enviar(
-                vencedor.email,
-                "Parabéns! Você venceu o leilão",
-                f"""Olá {vencedor.nome},
-            
-                Você venceu o leilão do item '{self.nome}' com o lance de R${max(l.valor for l in self.lances):.2f}.
-
-                Atenciosamente,
-                Sistema de Leilões
-                """
-            )
+            if enviar_email:
+                email_service.enviar(
+                    vencedor.email,
+                    "Parabéns! Você venceu o leilão",
+                    "email_template.html",
+                    {
+                        "nome_vencedor": vencedor.nome,
+                        "nome_item": self.nome,
+                        "valor_lance": f"{max(l.valor for l in self.lances):.2f}",
+                        "ano": datetime.now().year
+                    }
+                )
 
     # Método para identificar o vencedor (maior lance)
     def identificar_vencedor(self):

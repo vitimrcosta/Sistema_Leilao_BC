@@ -1,12 +1,14 @@
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.image import MIMEImage
 import os
 from dotenv import load_dotenv
 from typing import Optional, Dict, Any
 import logging
 from datetime import datetime
 import sys
+from jinja2 import Environment, FileSystemLoader
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -40,6 +42,9 @@ class EmailService:
         self.password = os.getenv("EMAIL_PASSWORD")
         self.system_name = os.getenv("SYSTEM_NAME", "Sistema de Leilões")
         self.debug = os.getenv("DEBUG_EMAIL", "false").lower() == "true"
+        
+        # Configurar Jinja2
+        self.jinja_env = Environment(loader=FileSystemLoader('templates/'))
         
         # Determinar modo de operação
         if modo is None:
@@ -97,30 +102,24 @@ class EmailService:
         if erros:
             raise ValueError(
                 f"Configuração de email inválida para modo produção:\n" +
-                "\n".join(f"- {erro}" for erro in erros) +
+                "\n".join(f"- {erro}" for erro in erros) + 
                 "\n\nConfigurações necessárias no arquivo .env:\n" +
                 "EMAIL_USER=seu.email@gmail.com\n" +
                 "EMAIL_PASSWORD=sua_senha_de_app"
             )
     
-    def enviar(self, destinatario: str, assunto: str, mensagem: str) -> Dict[str, Any]:
+    def enviar(self, destinatario: str, assunto: str, template: str, dados: Dict[str, Any]) -> Dict[str, Any]:
         """
         Envia email (comportamento varia por modo)
         
         Args:
             destinatario: Email do destinatário
             assunto: Assunto do email
-            mensagem: Corpo da mensagem
+            template: Nome do arquivo de template HTML
+            dados: Dicionário com dados para o template
             
         Returns:
-            Dict com informações do resultado:
-            {
-                'sucesso': bool,
-                'modo': str,
-                'destinatario': str,
-                'timestamp': datetime,
-                'erro': str (opcional)
-            }
+            Dict com informações do resultado
         """
         resultado = {
             'sucesso': False,
@@ -131,12 +130,14 @@ class EmailService:
         }
         
         try:
+            mensagem_html = self.jinja_env.get_template(template).render(dados)
+            
             if self.modo == 'test':
-                resultado.update(self._enviar_teste(destinatario, assunto, mensagem))
+                resultado.update(self._enviar_teste(destinatario, assunto, mensagem_html))
             elif self.modo == 'development':
-                resultado.update(self._enviar_desenvolvimento(destinatario, assunto, mensagem))
+                resultado.update(self._enviar_desenvolvimento(destinatario, assunto, mensagem_html))
             else:  # production
-                resultado.update(self._enviar_producao(destinatario, assunto, mensagem))
+                resultado.update(self._enviar_producao(destinatario, assunto, mensagem_html))
             
             if resultado['sucesso']:
                 self.emails_enviados += 1
@@ -153,15 +154,16 @@ class EmailService:
         
         return resultado
     
-    def _enviar_teste(self, destinatario: str, assunto: str, mensagem: str) -> Dict[str, Any]:
+    def _enviar_teste(self, destinatario: str, assunto: str, mensagem_html: str) -> Dict[str, Any]:
         """Simula envio para testes automatizados"""
-        # Simular falha se configurado ou se email contém palavras especiais
         simular_falhas = os.getenv("TEST_SIMULATE_EMAIL_FAILURES", "false").lower() == "true"
         
-        if (simular_falhas or 
+        if (
+            simular_falhas or 
             "falha" in assunto.lower() or 
             "erro" in assunto.lower() or
-            "fail" in destinatario.lower()):
+            "fail" in destinatario.lower()
+        ):
             
             if self.debug:
                 logger.warning(f"🧪 [TESTE] Simulando falha para: {destinatario}")
@@ -171,16 +173,15 @@ class EmailService:
                 'erro': 'Falha simulada para teste'
             }
         
-        # Simular sucesso
         if self.debug:
             logger.info(f"🧪 [TESTE] Email simulado enviado:")
             logger.info(f"    Para: {destinatario}")
             logger.info(f"    Assunto: {assunto}")
-            logger.info(f"    Tamanho da mensagem: {len(mensagem)} caracteres")
+            logger.info(f"    Tamanho da mensagem: {len(mensagem_html)} caracteres")
         
         return {'sucesso': True}
     
-    def _enviar_desenvolvimento(self, destinatario: str, assunto: str, mensagem: str) -> Dict[str, Any]:
+    def _enviar_desenvolvimento(self, destinatario: str, assunto: str, mensagem_html: str) -> Dict[str, Any]:
         """Log completo para desenvolvimento (não envia email real)"""
         separador = "=" * 60
         
@@ -193,27 +194,33 @@ class EmailService:
         print(f"Servidor: {self.smtp_server}:{self.smtp_port}")
         print(f"Horário:  {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
         print(f"{separador}")
-        print("CONTEÚDO:")
-        print(mensagem)
+        print("CONTEÚDO HTML:")
+        print(mensagem_html)
         print(f"{separador}")
         print("✅ EMAIL LOGADO (NÃO ENVIADO - MODO DESENVOLVIMENTO)")
         print(f"{separador}\n")
         
         return {'sucesso': True}
     
-    def _enviar_producao(self, destinatario: str, assunto: str, mensagem: str) -> Dict[str, Any]:
+    def _enviar_producao(self, destinatario: str, assunto: str, mensagem_html: str) -> Dict[str, Any]:
         """Envio real para produção"""
         try:
-            # Criar estrutura do email
-            msg = MIMEMultipart()
+            msg = MIMEMultipart('related')
             msg['From'] = f"{self.system_name} <{self.email}>"
             msg['To'] = destinatario
             msg['Subject'] = assunto
             
-            # Adicionar corpo da mensagem
-            msg.attach(MIMEText(mensagem, 'plain', 'utf-8'))
+            msg.attach(MIMEText(mensagem_html, 'html', 'utf-8'))
             
-            # Enviar via SMTP
+            # Anexar logo
+            try:
+                with open('templates/logo.png', 'rb') as f:
+                    logo = MIMEImage(f.read())
+                    logo.add_header('Content-ID', '<logo>')
+                    msg.attach(logo)
+            except FileNotFoundError:
+                logger.warning("Arquivo 'logo.png' não encontrado na pasta 'templates'. O email será enviado sem logo.")
+
             with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=30) as server:
                 server.starttls()
                 server.login(self.email, self.password)
@@ -289,13 +296,15 @@ class EmailService:
     def __str__(self) -> str:
         """Representação string do serviço"""
         stats = self.obter_estatisticas()
-        return (f"EmailService(modo={self.modo}, "
+        return (
+                f"EmailService(modo={self.modo}, "
                 f"enviados={stats['emails_enviados']}, "
-                f"falharam={stats['emails_falharam']})")
+                f"falharam={stats['emails_falharam']})"
+        )
 
 
 # Função auxiliar para uso rápido
-def enviar_email_rapido(destinatario: str, assunto: str, mensagem: str, modo: str = None) -> bool:
+def enviar_email_rapido(destinatario: str, assunto: str, template: str, dados: Dict[str, Any], modo: str = None) -> bool:
     """
     Função auxiliar para envio rápido de email
     
@@ -303,7 +312,7 @@ def enviar_email_rapido(destinatario: str, assunto: str, mensagem: str, modo: st
         bool: True se enviado com sucesso
     """
     service = EmailService(modo)
-    resultado = service.enviar(destinatario, assunto, mensagem)
+    resultado = service.enviar(destinatario, assunto, template, dados)
     return resultado['sucesso']
 
 
@@ -321,10 +330,17 @@ if __name__ == "__main__":
         print(f"  {detalhe}")
     
     # Teste de envio
+    dados_teste = {
+        'nome_vencedor': 'Victor',
+        'nome_item': 'iPhone 15 Pro',
+        'valor_lance': '6000.00',
+        'ano': datetime.now().year
+    }
     resultado = service.enviar(
         "teste@exemplo.com",
         "Teste do Sistema de Leilões",
-        "Este é um email de teste do sistema."
+        "email_template.html",
+        dados_teste
     )
     
     print(f"\nResultado do teste de envio:")
