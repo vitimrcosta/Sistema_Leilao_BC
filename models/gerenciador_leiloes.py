@@ -1,105 +1,125 @@
 from datetime import datetime
 from typing import List
+from sqlalchemy.orm import Session
 from models.leilao import Leilao, EstadoLeilao
 from models.participante import Participante
+from models.lance import Lance
 
 # Classe responsável por gerenciar todas as operações relacionadas a leilões e participantes.
 class GerenciadorLeiloes:
-    def __init__(self):
-        # Lista que armazenará todos os objetos do tipo Leilao cadastrados no sistema.
-        self.leiloes: List[Leilao] = []
-        # Lista que armazenará todos os objetos do tipo Participante cadastrados no sistema.
-        self.participantes: List[Participante] = []
-
-    # Remove um participante da lista de participantes do sistema.
-    def remover_participante(self, participante):
-        #Verifica em todos os leilões se o participante tem lances (any percorre os lances de cada leilão).
-        for leilao in self.leiloes:
-            # Se o participante tiver feito ao menos um lance em qualquer leilão, lançar exceção.
-            if any(lance.participante == participante for lance in leilao.lances):
-                raise ValueError("Participante não pode ser removido (possui lances)")
-         # Se passou pelas verificações, remove o participante da lista.
-        self.participantes.remove(participante)
+    def __init__(self, db: Session):
+        self.db = db
 
     # Adiciona um novo leilão.
     def adicionar_leilao(self, leilao: Leilao):
-        #Adiciona um novo leilão à lista de leilões.
-        self.leiloes.append(leilao)
+        self.db.add(leilao)
+        self.db.commit()
+        self.db.refresh(leilao)
+        return leilao
+
+    def adicionar_participante(self, participante: Participante):
+        self.db.add(participante)
+        self.db.commit()
+        self.db.refresh(participante)
+        return participante
+
+    def encontrar_leilao_por_id(self, leilao_id: int) -> Leilao:
+        return self.db.query(Leilao).filter(Leilao.id == leilao_id).first()
+
+    def encontrar_participante_por_cpf(self, cpf: str) -> Participante:
+        return self.db.query(Participante).filter(Participante.cpf == cpf).first()
+
+    def abrir_leilao(self, leilao_id: int, data_abertura: datetime):
+        leilao = self.encontrar_leilao_por_id(leilao_id)
+        if not leilao:
+            raise ValueError("Leilão não encontrado")
+        leilao.abrir(data_abertura)
+        self.db.commit()
+
+    def finalizar_leilao(self, leilao_id: int, data_finalizacao: datetime):
+        leilao = self.encontrar_leilao_por_id(leilao_id)
+        if not leilao:
+            raise ValueError("Leilão não encontrado")
+        leilao.finalizar(data_finalizacao)
+        self.db.commit()
+
+    def adicionar_lance(self, leilao_id: int, lance: Lance):
+        leilao = self.encontrar_leilao_por_id(leilao_id)
+        if not leilao:
+            raise ValueError("Leilão não encontrado")
+        
+        if leilao.estado != EstadoLeilao.ABERTO:
+            raise ValueError("Leilão deve estar ABERTO para receber lances")
+
+        if lance.valor < leilao.lance_minimo:
+            raise ValueError(f"Lance deve ser >= R${leilao.lance_minimo:.2f}")
+
+        if leilao.lances and lance.valor <= leilao.lances[-1].valor:
+            raise ValueError("Lance deve ser maior que o último lance")
+
+        if leilao.lances and lance.participante_id == leilao.lances[-1].participante_id:
+            raise ValueError("Participante não pode dar dois lances consecutivos")
+
+        self.db.add(lance)
+        self.db.commit()
 
     def listar_leiloes(self, 
                       estado: EstadoLeilao = None, 
                       data_inicio: datetime = None, 
                       data_fim: datetime = None) -> List[Leilao]:
-        """Filtra leilões com base nos critérios fornecidos"""
-        resultado = self.leiloes.copy()
-    
-        # Validação de datas invertidas (CORREÇÃO ADICIONADA)
-        if data_inicio is not None and data_fim is not None:
-            if data_inicio > data_fim:
-                raise ValueError("Data de início não pode ser maior que data de término")
-    
-        # Filtro por estado
-        if estado is not None:
-            resultado = [leilao for leilao in resultado if leilao.estado == estado]
-    
-        # Filtro por intervalo de datas
-        if data_inicio is not None and data_fim is not None:
-            resultado = [
-                leilao for leilao in resultado 
-                if leilao.data_inicio >= data_inicio 
-                and leilao.data_fim <= data_fim
-            ]
-        elif data_inicio is not None:
-            resultado = [leilao for leilao in resultado if leilao.data_inicio >= data_inicio]
-        elif data_fim is not None:
-            resultado = [leilao for leilao in resultado if leilao.data_fim <= data_fim]
-    
-        return resultado
+        query = self.db.query(Leilao)
+        if data_inicio and data_fim and data_inicio > data_fim:
+            raise ValueError("Data de início não pode ser maior que data de término")
+        if estado:
+            query = query.filter(Leilao.estado == estado)
+        if data_inicio:
+            query = query.filter(Leilao.data_inicio >= data_inicio)
+        if data_fim:
+            query = query.filter(Leilao.data_fim <= data_fim)
+        return query.all()
 
-    # Permite editar um leilão específico, desde que ele esteja INATIVO.
     def editar_leilao(self, leilao_id: int, 
                      novo_nome: str = None, 
                      novo_lance_minimo: float = None):
-        """Edita um leilão existente"""
-         # Busca o leilão correspondente ao ID passado.
-        leilao = self._encontrar_leilao_por_id(leilao_id)
+        leilao = self.encontrar_leilao_por_id(leilao_id)
+        if not leilao:
+            raise ValueError("Leilão não encontrado")
         
-        # Só permite editar leilões que estão INATIVOS.
         if leilao.estado != EstadoLeilao.INATIVO:
             raise ValueError("Só é possível editar leilões INATIVOS")
 
-         # Se um novo nome foi passado, atualiza o nome.
         if novo_nome:
             leilao.nome = novo_nome
-
-        # Se um novo valor de lance mínimo foi passado, atualiza o valor.
         if novo_lance_minimo:
             leilao.lance_minimo = novo_lance_minimo
+        
+        self.db.commit()
+        self.db.refresh(leilao)
+        return leilao
 
-    # Remove um leilão do sistema
     def remover_leilao(self, leilao_id: int):
-        """Remove um leilão seguindo as regras"""
+        leilao = self.encontrar_leilao_por_id(leilao_id)
+        if not leilao:
+            raise ValueError("Leilão não encontrado")
 
-        # Busca o leilão pelo ID.
-        leilao = self._encontrar_leilao_por_id(leilao_id)
-
-        # Regra: não pode remover leilões que estejam ABERTOS.
         if leilao.estado == EstadoLeilao.ABERTO:
             raise ValueError("Não é possível excluir leilões ABERTOS")
         
-        # Regra: não pode remover leilões com lances registrados.
-        if len(leilao.lances) > 0:
+        if leilao.lances:
             raise ValueError("Não é possível excluir leilões com lances registrados")
         
-        # Se passou pelas regras, remove da lista.
-        self.leiloes.remove(leilao)
+        self.db.delete(leilao)
+        self.db.commit()
 
-    # Método auxiliar privado (iniciado por "_") que localiza um leilão a partir do seu ID.
-    # Obs: o ID usado aqui é o ID do objeto em memória (usando `id()`), e não um atributo próprio.
-    def _encontrar_leilao_por_id(self, leilao_id: int) -> Leilao:
-        """Método auxiliar para encontrar leilão por ID"""
-        for leilao in self.leiloes:
-            if id(leilao) == leilao_id:
-                return leilao
-        # Se nenhum leilão com esse ID for encontrado, levanta exceção.    
-        raise ValueError("Leilão não encontrado")
+    def remover_participante(self, participante: Participante):
+        participante_db = self.encontrar_participante_por_cpf(participante.cpf)
+        if not participante_db:
+            raise ValueError("Participante não encontrado")
+
+        # Verifica se o participante tem lances
+        lances = self.db.query(Lance).filter(Lance.participante_id == participante_db.id).count()
+        if lances > 0:
+            raise ValueError("Participante não pode ser removido (possui lances)")
+
+        self.db.delete(participante_db)
+        self.db.commit()

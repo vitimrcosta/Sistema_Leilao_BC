@@ -15,9 +15,9 @@ class TestIntegracaoFluxoCompletoLeilao:
     """Testes de integração para fluxo completo de leilão"""
     
     @pytest.fixture
-    def sistema_completo(self):
+    def sistema_completo(self, db_session):
         """Fixture que prepara um sistema completo com participantes"""
-        gerenciador = GerenciadorLeiloes()
+        gerenciador = GerenciadorLeiloes(db_session)
         
         # Criar participantes
         participante1 = Participante(
@@ -33,7 +33,9 @@ class TestIntegracaoFluxoCompletoLeilao:
             "pedro@email.com", datetime(1992, 8, 20)
         )
         
-        gerenciador.participantes.extend([participante1, participante2, participante3])
+        gerenciador.adicionar_participante(participante1)
+        gerenciador.adicionar_participante(participante2)
+        gerenciador.adicionar_participante(participante3)
         
         return {
             'gerenciador': gerenciador,
@@ -55,8 +57,9 @@ class TestIntegracaoFluxoCompletoLeilao:
         gerenciador.adicionar_leilao(leilao)
         
         # 2. Abrir leilão
-        leilao.abrir(agora)
-        assert leilao.estado == EstadoLeilao.ABERTO
+        gerenciador.abrir_leilao(leilao.id, agora)
+        leilao_aberto = gerenciador.encontrar_leilao_por_id(leilao.id)
+        assert leilao_aberto.estado == EstadoLeilao.ABERTO
         
         # 3. Sequência de lances (integração Lance + Leilao + Participante)
         lances_dados = [
@@ -67,17 +70,18 @@ class TestIntegracaoFluxoCompletoLeilao:
         ]
         
         for valor, participante in lances_dados:
-            lance = Lance(valor, participante, leilao, datetime.now())
-            leilao.adicionar_lance(lance)
+            lance = Lance(valor, participante.id, leilao.id, datetime.now())
+            gerenciador.adicionar_lance(leilao.id, lance)
         
         # Verificar estado intermediário
-        assert len(leilao.lances) == 4
-        assert leilao.maior_lance == 2700.0
-        assert leilao.menor_lance == 2100.0
+        leilao_com_lances = gerenciador.encontrar_leilao_por_id(leilao.id)
+        assert len(leilao_com_lances.lances) == 4
+        assert leilao_com_lances.maior_lance == 2700.0
+        assert leilao_com_lances.menor_lance == 2100.0
         
         # 4. Finalizar leilão (com mock do email)
         with patch.object(EmailService, 'enviar') as mock_email:
-            leilao.finalizar(agora + timedelta(minutes=2))
+            gerenciador.finalizar_leilao(leilao.id, agora + timedelta(minutes=2))
             
             # Verificar integração com EmailService
             assert mock_email.called
@@ -88,8 +92,9 @@ class TestIntegracaoFluxoCompletoLeilao:
             assert "R$2700.00" in args[2]  # Valor no corpo
         
         # 5. Verificar estado final
-        assert leilao.estado == EstadoLeilao.FINALIZADO
-        vencedor = leilao.identificar_vencedor()
+        leilao_finalizado = gerenciador.encontrar_leilao_por_id(leilao.id)
+        assert leilao_finalizado.estado == EstadoLeilao.FINALIZADO
+        vencedor = leilao_finalizado.identificar_vencedor()
         assert vencedor.participante == participantes[0]  # João
         assert vencedor.valor == 2700.0
     
@@ -105,31 +110,33 @@ class TestIntegracaoFluxoCompletoLeilao:
             agora + timedelta(minutes=1)
         )
         gerenciador.adicionar_leilao(leilao)
-        leilao.abrir(agora)
+        gerenciador.abrir_leilao(leilao.id, agora)
         
         # 2. Não adicionar lances
-        assert len(leilao.lances) == 0
+        leilao_sem_lances = gerenciador.encontrar_leilao_por_id(leilao.id)
+        assert len(leilao_sem_lances.lances) == 0
         
         # 3. Finalizar (sem mock - não deve enviar email)
-        leilao.finalizar(agora + timedelta(minutes=2))
+        gerenciador.finalizar_leilao(leilao.id, agora + timedelta(minutes=2))
         
         # 4. Verificar estado final
-        assert leilao.estado == EstadoLeilao.EXPIRADO
-        assert leilao.maior_lance == 0
-        assert leilao.menor_lance == 0
+        leilao_expirado = gerenciador.encontrar_leilao_por_id(leilao.id)
+        assert leilao_expirado.estado == EstadoLeilao.EXPIRADO
+        assert leilao_expirado.maior_lance == 0
+        assert leilao_expirado.menor_lance == 0
         
         # 5. Verificar que não pode identificar vencedor
         with pytest.raises(ValueError, match="não finalizado"):
-            leilao.identificar_vencedor()
+            leilao_expirado.identificar_vencedor()
 
 
 class TestIntegracaoMultiplosLeiloes:
     """Testes de integração com múltiplos leilões simultâneos"""
     
     @pytest.fixture
-    def ambiente_multiplos_leiloes(self):
+    def ambiente_multiplos_leiloes(self, db_session):
         """Sistema com múltiplos leilões e participantes"""
-        gerenciador = GerenciadorLeiloes()
+        gerenciador = GerenciadorLeiloes(db_session)
         
         # Participantes
         participantes = [
@@ -137,7 +144,8 @@ class TestIntegracaoMultiplosLeiloes:
                         f"user{i}@email.com", datetime(1990, 1, 1))
             for i in range(1, 6)  # 5 participantes
         ]
-        gerenciador.participantes.extend(participantes)
+        for p in participantes:
+            gerenciador.adicionar_participante(p)
         
         # Usar data base fixa para evitar problemas de timing
         data_base = datetime(2024, 1, 15, 10, 0, 0)  # Data fixa
@@ -159,12 +167,12 @@ class TestIntegracaoMultiplosLeiloes:
                   data_base - timedelta(hours=1))
         ]
         
-        # Configurar estados com data base
-        leiloes[1].abrir(data_base - timedelta(minutes=30))  # Abrir o notebook
-        leiloes[2].abrir(data_base - timedelta(hours=2, minutes=30))  # Abrir o celular
-        
         for leilao in leiloes:
             gerenciador.adicionar_leilao(leilao)
+
+        # Configurar estados com data base
+        gerenciador.abrir_leilao(leiloes[1].id, data_base - timedelta(minutes=30))  # Abrir o notebook
+        gerenciador.abrir_leilao(leiloes[2].id, data_base - timedelta(hours=2, minutes=30))  # Abrir o celular
         
         return {
             'gerenciador': gerenciador,
@@ -190,15 +198,16 @@ class TestIntegracaoMultiplosLeiloes:
         ]
         
         for valor, participante, leilao in lances_simultaneos:
-            lance = Lance(valor, participante, leilao, datetime.now())
-            leilao.adicionar_lance(lance)
+            lance = Lance(valor, participante.id, leilao.id, datetime.now())
+            gerenciador.adicionar_lance(leilao.id, lance)
         
         # Verificar integração GerenciadorLeiloes + Leilao + Lance
-        assert len(leilao_notebook.lances) == 4
-        assert leilao_notebook.maior_lance == 2400.0
+        leilao_com_lances = gerenciador.encontrar_leilao_por_id(leilao_notebook.id)
+        assert len(leilao_com_lances.lances) == 4
+        assert leilao_com_lances.maior_lance == 2400.0
         
         # Verificar que participantes estão registrados corretamente
-        participantes_ativos = {lance.participante for lance in leilao_notebook.lances}
+        participantes_ativos = {lance.participante for lance in leilao_com_lances.lances}
         assert len(participantes_ativos) == 3  # 3 participantes únicos
         assert participantes[0] in participantes_ativos
         assert participantes[1] in participantes_ativos
@@ -238,38 +247,42 @@ class TestIntegracaoEmailService:
     """Testes de integração com EmailService real"""
     
     @pytest.fixture
-    def leilao_com_email(self):
+    def leilao_com_email(self, db_session):
         """Leilão configurado para testar integração com email"""
+        gerenciador = GerenciadorLeiloes(db_session)
         agora = datetime.now()
         participante = Participante(
             "123.456.789-00", "João Teste", 
             "teste@email.com", datetime(1990, 1, 1)
         )
+        gerenciador.adicionar_participante(participante)
         
         leilao = Leilao(
             "Produto Email Test", 1000.0,
             agora - timedelta(minutes=1),
             agora + timedelta(minutes=1)
         )
-        leilao.abrir(agora)
+        gerenciador.adicionar_leilao(leilao)
+        gerenciador.abrir_leilao(leilao.id, agora)
         
-        return {'leilao': leilao, 'participante': participante}
+        return {'gerenciador': gerenciador, 'leilao': leilao, 'participante': participante}
     
     def test_integracao_email_sucesso(self, leilao_com_email):
         """Testa integração bem-sucedida com serviço de email"""
+        gerenciador = leilao_com_email['gerenciador']
         leilao = leilao_com_email['leilao']
         participante = leilao_com_email['participante']
         
         # Adicionar lance
-        lance = Lance(1200.0, participante, leilao, datetime.now())
-        leilao.adicionar_lance(lance)
+        lance = Lance(1200.0, participante.id, leilao.id, datetime.now())
+        gerenciador.adicionar_lance(leilao.id, lance)
         
         # Mock do EmailService para simular sucesso
         with patch.object(EmailService, 'enviar') as mock_email:
             mock_email.return_value = None  # Simula sucesso
             
             # Finalizar (deve tentar enviar email)
-            leilao.finalizar(datetime.now() + timedelta(minutes=2))
+            gerenciador.finalizar_leilao(leilao.id, datetime.now() + timedelta(minutes=2))
             
             # Verificar se email foi chamado corretamente
             assert mock_email.call_count == 1
@@ -284,12 +297,13 @@ class TestIntegracaoEmailService:
     
     def test_integracao_email_falha_nao_impede_finalizacao(self, leilao_com_email):
         """Testa que falha no email não impede finalização do leilão"""
+        gerenciador = leilao_com_email['gerenciador']
         leilao = leilao_com_email['leilao']
         participante = leilao_com_email['participante']
         
         # Adicionar lance
-        lance = Lance(1200.0, participante, leilao, datetime.now())
-        leilao.adicionar_lance(lance)
+        lance = Lance(1200.0, participante.id, leilao.id, datetime.now())
+        gerenciador.adicionar_lance(leilao.id, lance)
         
         # CORREÇÃO: Usar patch diretamente no método finalizar
         # para interceptar a chamada antes da execução
@@ -301,7 +315,7 @@ class TestIntegracaoEmailService:
             # NOTA: O código atual não trata exceções de email,
             # então este teste falhará até que seja implementado o tratamento
             try:
-                leilao.finalizar(datetime.now() + timedelta(minutes=2))
+                gerenciador.finalizar_leilao(leilao.id, datetime.now() + timedelta(minutes=2))
                 # Se chegou aqui, o email foi enviado com sucesso ou o erro foi tratado
                 finalizou_com_sucesso = True
             except Exception as e:
@@ -312,18 +326,19 @@ class TestIntegracaoEmailService:
             
             # Por ora, verificar que o leilão ainda tem os dados corretos
             # independente do erro de email
-            assert len(leilao.lances) == 1
-            assert leilao.lances[0].participante == participante
-            assert leilao.lances[0].valor == 1200.0
+            leilao_com_lance = gerenciador.encontrar_leilao_por_id(leilao.id)
+            assert len(leilao_com_lance.lances) == 1
+            assert leilao_com_lance.lances[0].participante == participante
+            assert leilao_com_lance.lances[0].valor == 1200.0
 
 
 class TestIntegracaoGerenciadorComplexo:
     """Testes de integração complexos do GerenciadorLeiloes"""
     
     @pytest.fixture
-    def sistema_complexo(self):
+    def sistema_complexo(self, db_session):
         """Sistema com cenário complexo para testes avançados"""
-        gerenciador = GerenciadorLeiloes()
+        gerenciador = GerenciadorLeiloes(db_session)
         
         # Criar 10 participantes
         participantes = []
@@ -333,8 +348,7 @@ class TestIntegracaoGerenciadorComplexo:
                 f"part{i:02d}@email.com", datetime(1990, 1, 1)
             )
             participantes.append(p)
-        
-        gerenciador.participantes.extend(participantes)
+            gerenciador.adicionar_participante(p)
         
         # Usar data base fixa para evitar problemas de timing
         data_base = datetime(2024, 1, 15, 12, 0, 0)
@@ -357,20 +371,20 @@ class TestIntegracaoGerenciadorComplexo:
                 data_base - timedelta(hours=i+1),
                 data_base + timedelta(hours=i+2)
             )
-            leilao.abrir(data_base - timedelta(minutes=30))
+            gerenciador.adicionar_leilao(leilao)
+            gerenciador.abrir_leilao(leilao.id, data_base - timedelta(minutes=30))
             
             # Adicionar alguns lances
             for j in range(i + 1):  # 1, 2, 3 lances respectivamente
                 lance = Lance(
-                    (500.0 + (i * 200)) + (j * 100), 
-                    participantes[j], 
-                    leilao, 
+                    (500.0 + (i * 200)) + (j * 100) + 1, 
+                    participantes[j].id, 
+                    leilao.id, 
                     data_base
                 )
-                leilao.adicionar_lance(lance)
+                gerenciador.adicionar_lance(leilao.id, lance)
             
             leiloes.append(leilao)
-            gerenciador.adicionar_leilao(leilao)
         
         # 2 leilões já FINALIZADOS
         for i in range(2):
@@ -379,17 +393,17 @@ class TestIntegracaoGerenciadorComplexo:
                 data_base - timedelta(days=i+2),
                 data_base - timedelta(days=i+1)
             )
-            leilao.abrir(data_base - timedelta(days=i+1, hours=2))
+            gerenciador.adicionar_leilao(leilao)
+            gerenciador.abrir_leilao(leilao.id, data_base - timedelta(days=i+1, hours=2))
             
             # Adicionar lance e finalizar
-            lance = Lance(400.0 + (i * 150), participantes[i], leilao, data_base)
-            leilao.adicionar_lance(lance)
+            lance = Lance(400.0 + (i * 150) + 1, participantes[i].id, leilao.id, data_base)
+            gerenciador.adicionar_lance(leilao.id, lance)
             
             with patch.object(EmailService, 'enviar'):  # Mock email
-                leilao.finalizar(data_base - timedelta(days=i, hours=12))
+                gerenciador.finalizar_leilao(leilao.id, data_base - timedelta(days=i, hours=12))
             
             leiloes.append(leilao)
-            gerenciador.adicionar_leilao(leilao)
         
         return {
             'gerenciador': gerenciador,
@@ -411,11 +425,12 @@ class TestIntegracaoGerenciadorComplexo:
         
         # Participante que não tem lances pode ser removido
         participante_sem_lances = participantes[9]  # Último participante
-        count_inicial = len(gerenciador.participantes)
+        participantes_antes = gerenciador.db.query(Participante).count()
         
         gerenciador.remover_participante(participante_sem_lances)
-        assert len(gerenciador.participantes) == count_inicial - 1
-        assert participante_sem_lances not in gerenciador.participantes
+        participantes_depois = gerenciador.db.query(Participante).count()
+        assert participantes_depois == participantes_antes - 1
+        assert gerenciador.encontrar_participante_por_cpf(participante_sem_lances.cpf) is None
     
     def test_edicao_leiloes_com_validacao_estados(self, sistema_complexo):
         """Testa edição de leilões com validação de estados integrada"""
@@ -424,26 +439,30 @@ class TestIntegracaoGerenciadorComplexo:
         
         # Editar leilão INATIVO (deve funcionar)
         leilao_inativo = leiloes[0]  # Primeiro leilão é INATIVO
-        assert leilao_inativo.estado == EstadoLeilao.INATIVO
+        leilao_inativo_db = gerenciador.encontrar_leilao_por_id(leilao_inativo.id)
+        assert leilao_inativo_db.estado == EstadoLeilao.INATIVO
         
         gerenciador.editar_leilao(
-            id(leilao_inativo), 
+            leilao_inativo.id, 
             novo_nome="Item Editado",
             novo_lance_minimo=1500.0
         )
-        assert leilao_inativo.nome == "Item Editado"
-        assert leilao_inativo.lance_minimo == 1500.0
-        assert leilao_inativo.estado == EstadoLeilao.INATIVO
+        leilao_editado = gerenciador.encontrar_leilao_por_id(leilao_inativo.id)
+        assert leilao_editado.nome == "Item Editado"
+        assert leilao_editado.lance_minimo == 1500.0
+        assert leilao_editado.estado == EstadoLeilao.INATIVO
         
         # Tentar editar leilão ABERTO (deve falhar)
         leilao_aberto = leiloes[5]  # Primeiro leilão ABERTO
-        assert leilao_aberto.estado == EstadoLeilao.ABERTO
+        leilao_aberto_db = gerenciador.encontrar_leilao_por_id(leilao_aberto.id)
+        assert leilao_aberto_db.estado == EstadoLeilao.ABERTO
         
         with pytest.raises(ValueError, match="INATIVOS"):
-            gerenciador.editar_leilao(id(leilao_aberto), novo_nome="Não Deve Editar")
+            gerenciador.editar_leilao(leilao_aberto.id, novo_nome="Não Deve Editar")
         
         # Nome não deve ter mudado
-        assert "Não Deve Editar" not in leilao_aberto.nome
+        leilao_nao_editado = gerenciador.encontrar_leilao_por_id(leilao_aberto.id)
+        assert "Não Deve Editar" not in leilao_nao_editado.nome
     
     def test_remocao_leiloes_com_multiplas_validacoes(self, sistema_complexo):
         """Testa remoção de leilões com todas as validações integradas"""
@@ -453,27 +472,29 @@ class TestIntegracaoGerenciadorComplexo:
         # Não pode remover leilão ABERTO
         leilao_aberto = leiloes[5]
         with pytest.raises(ValueError, match="ABERTOS"):
-            gerenciador.remover_leilao(id(leilao_aberto))
+            gerenciador.remover_leilao(leilao_aberto.id)
         
         # Não pode remover leilão com lances (mesmo se finalizado)
         leilao_finalizado = leiloes[8]  # Leilão finalizado com lances
         with pytest.raises(ValueError, match="com lances"):
-            gerenciador.remover_leilao(id(leilao_finalizado))
+            gerenciador.remover_leilao(leilao_finalizado.id)
         
         # Pode remover leilão INATIVO sem lances
         leilao_removivel = leiloes[0]  # INATIVO sem lances
-        count_inicial = len(gerenciador.leiloes)
+        leiloes_antes = len(gerenciador.listar_leiloes())
         
-        gerenciador.remover_leilao(id(leilao_removivel))
-        assert len(gerenciador.leiloes) == count_inicial - 1
-        assert leilao_removivel not in gerenciador.leiloes
+        gerenciador.remover_leilao(leilao_removivel.id)
+        leiloes_depois = len(gerenciador.listar_leiloes())
+        assert leiloes_depois == leiloes_antes - 1
+        assert gerenciador.encontrar_leilao_por_id(leilao_removivel.id) is None
 
 
 class TestIntegracaoTempoReal:
     """Testes de integração com comportamento baseado em tempo real"""
     
-    def test_transicoes_estado_baseadas_tempo(self):
+    def test_transicoes_estado_baseadas_tempo(self, db_session):
         """Testa transições de estado baseadas em tempo real"""
+        gerenciador = GerenciadorLeiloes(db_session)
         # Criar leilão que abre imediatamente e fecha em 1 segundo
         agora = datetime.now()
         leilao = Leilao(
@@ -481,39 +502,44 @@ class TestIntegracaoTempoReal:
             agora + timedelta(milliseconds=100),  # Abre em 100ms
             agora + timedelta(seconds=1)          # Fecha em 1s
         )
+        gerenciador.adicionar_leilao(leilao)
         
         participante = Participante(
             "123.456.789-00", "Test User", 
             "test@email.com", datetime(1990, 1, 1)
         )
+        gerenciador.adicionar_participante(participante)
         
         # Estado inicial
-        assert leilao.estado == EstadoLeilao.INATIVO
+        leilao_db = gerenciador.encontrar_leilao_por_id(leilao.id)
+        assert leilao_db.estado == EstadoLeilao.INATIVO
         
         # Não pode abrir antes da hora
         with pytest.raises(ValueError, match="antes da data de início"):
-            leilao.abrir(agora)
+            gerenciador.abrir_leilao(leilao.id, agora)
         
         # Aguardar e abrir
         time.sleep(0.2)  # Aguarda 200ms
-        leilao.abrir(datetime.now())
-        assert leilao.estado == EstadoLeilao.ABERTO
+        gerenciador.abrir_leilao(leilao.id, datetime.now())
+        leilao_aberto = gerenciador.encontrar_leilao_por_id(leilao.id)
+        assert leilao_aberto.estado == EstadoLeilao.ABERTO
         
         # Adicionar lance
-        lance = Lance(1200.0, participante, leilao, datetime.now())
-        leilao.adicionar_lance(lance)
+        lance = Lance(1200.0, participante.id, leilao.id, datetime.now())
+        gerenciador.adicionar_lance(leilao.id, lance)
         
         # Não pode finalizar antes da hora
         with pytest.raises(ValueError, match="antes da data de término"):
-            leilao.finalizar(datetime.now())
+            gerenciador.finalizar_leilao(leilao.id, datetime.now())
         
         # Aguardar término e finalizar
         time.sleep(1.2)  # Aguarda que passe da data fim
         
         with patch.object(EmailService, 'enviar'):  # Mock email
-            leilao.finalizar(datetime.now())
+            gerenciador.finalizar_leilao(leilao.id, datetime.now())
         
-        assert leilao.estado == EstadoLeilao.FINALIZADO
+        leilao_finalizado = gerenciador.encontrar_leilao_por_id(leilao.id)
+        assert leilao_finalizado.estado == EstadoLeilao.FINALIZADO
 
 
 if __name__ == "__main__":

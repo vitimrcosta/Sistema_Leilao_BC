@@ -7,6 +7,7 @@ import smtplib
 from io import StringIO
 
 from services.email_service import EmailService, enviar_email_rapido
+from models.gerenciador_leiloes import GerenciadorLeiloes
 
 class TestEmailServiceModos:
     """Testa os diferentes modos de operação do EmailService"""
@@ -211,18 +212,20 @@ class TestEmailServiceProducao:
 class TestEmailServiceIntegracao:
     """Testa integração do EmailService com outros componentes"""
     
-    def test_integracao_com_leilao(self):
+    def test_integracao_com_leilao(self, db_session):
         """Testa integração real com finalização de leilão"""
         from models.leilao import Leilao, EstadoLeilao
         from models.participante import Participante
         from models.lance import Lance
         from datetime import datetime, timedelta
         
+        gerenciador = GerenciadorLeiloes(db_session)
         # Criar cenário completo
         participante = Participante(
             "123.456.789-00", "João Vencedor",
             "joao.vencedor@teste.com", datetime(1990, 1, 1)
         )
+        gerenciador.adicionar_participante(participante)
         
         agora = datetime.now()
         leilao = Leilao(
@@ -231,11 +234,12 @@ class TestEmailServiceIntegracao:
             agora - timedelta(minutes=1),
             agora + timedelta(minutes=1)
         )
+        gerenciador.adicionar_leilao(leilao)
         
         # Simular leilão completo
-        leilao.abrir(agora)
-        lance = Lance(2500.0, participante, leilao, agora)
-        leilao.adicionar_lance(lance)
+        gerenciador.abrir_leilao(leilao.id, agora)
+        lance = Lance(2500.0, participante.id, leilao.id, agora)
+        gerenciador.adicionar_lance(leilao.id, lance)
         
         # Finalizar leilão (vai tentar enviar email)
         # Como estamos em modo test, o email será simulado
@@ -243,7 +247,7 @@ class TestEmailServiceIntegracao:
             with patch.object(EmailService, 'enviar') as mock_enviar:
                 mock_enviar.return_value = {'sucesso': True, 'modo': 'test'}
                 
-                leilao.finalizar(agora + timedelta(minutes=2), enviar_email=True)
+                gerenciador.finalizar_leilao(leilao.id, agora + timedelta(minutes=2))
                 
                 # Verificar se tentou enviar email
                 mock_enviar.assert_called_once()
@@ -254,7 +258,8 @@ class TestEmailServiceIntegracao:
                 assert "João Vencedor" in call_args[2]
                 assert "2500.00" in call_args[2]
         
-        assert leilao.estado == EstadoLeilao.FINALIZADO
+        leilao_finalizado = gerenciador.encontrar_leilao_por_id(leilao.id)
+        assert leilao_finalizado.estado == EstadoLeilao.FINALIZADO
     
     def test_funcao_enviar_email_rapido(self):
         """Testa função auxiliar para envio rápido"""
@@ -639,7 +644,7 @@ class TestEmailServiceCobertura100Porcento:
     def test_bloco_main(self, capsys):
         """Testa execução do bloco __main__"""
         # Simular execução do código do main
-        code = """
+        code = r"""
 from services.email_service import EmailService
 
 print("🧪 Testando EmailService...")
@@ -647,7 +652,7 @@ service = EmailService()
 print(f"Modo detectado: {service.modo}")
 
 config_test = service.testar_configuracao()
-print("\\nTeste de configuração:")
+print("\nTeste de configuração:")
 for detalhe in config_test['detalhes']:
     print(f"  {detalhe}")
 
@@ -657,12 +662,12 @@ resultado = service.enviar(
     "Este é um email de teste do sistema."
 )
 
-print(f"\\nResultado do teste de envio:")
+print(f"\nResultado do teste de envio:")
 print(f"  Sucesso: {resultado['sucesso']}")
 print(f"  Modo: {resultado['modo']}")
 
 stats = service.obter_estatisticas()
-print(f"\\nEstatísticas: {stats}")
+print(f"\nEstatísticas: {stats}")
 """
         exec(code)
         captured = capsys.readouterr()

@@ -2,6 +2,10 @@ from services.email_service import EmailService
 from datetime import datetime
 from enum import Enum, auto
 
+from sqlalchemy import Column, Integer, String, Float, DateTime, Enum as SQLEnum
+from sqlalchemy.orm import relationship
+from models.base import Base
+
 # Enumeração dos possíveis estados de um leilão
 class EstadoLeilao(Enum):
     INATIVO = auto()    # Estado inicial: o leilão ainda não começou (antes da data_inicio)
@@ -10,19 +14,28 @@ class EstadoLeilao(Enum):
     EXPIRADO = auto()   # Leilão foi encerrado sem que nenhum lance tenha sido feito
 
 # Classe que representa um Leilão
-class Leilao:
-     # Método construtor: inicializa os dados de um novo leilão
+class Leilao(Base):
+    __tablename__ = "leiloes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nome = Column(String, nullable=False)
+    lance_minimo = Column(Float, nullable=False)
+    data_inicio = Column(DateTime, nullable=False)
+    data_fim = Column(DateTime, nullable=False)
+    estado = Column(SQLEnum(EstadoLeilao), default=EstadoLeilao.INATIVO, nullable=False)
+
+    # Relacionamento com Lances (um leilão pode ter muitos lances)
+    lances = relationship("Lance", back_populates="leilao", cascade="all, delete-orphan")
+
     def __init__(self, nome: str, lance_minimo: float, data_inicio: datetime, data_fim: datetime):
-         # Validação para garantir que a data final não seja anterior à inicial
+        # Validação para garantir que a data final não seja anterior à inicial
         if data_fim <= data_inicio:
             raise ValueError("Data de término deve ser posterior à data de início")
-        # Atributos básicos do leilão
-        self.nome = nome # Nome do item a ser leiloado
-        self.lance_minimo = lance_minimo  # Valor mínimo para aceitar lances
-        self.data_inicio = data_inicio  # Data/hora de início do leilão
-        self.data_fim = data_fim # Data/hora de término do leilão
-        self.estado = EstadoLeilao.INATIVO # Estado inicial do leilão
-        self.lances = [] # Lista de lances recebidos
+        self.nome = nome
+        self.lance_minimo = lance_minimo
+        self.data_inicio = data_inicio
+        self.data_fim = data_fim
+        self.estado = EstadoLeilao.INATIVO
 
     # Método para abrir o leilão
     def abrir(self, agora: datetime):
@@ -65,24 +78,7 @@ class Leilao:
                 """
             )
 
-    # Método para adicionar um novo lance no leilão
-    def adicionar_lance(self, lance):
-        # Leilão deve estar ABERTO
-        if self.estado != EstadoLeilao.ABERTO:
-            raise ValueError("Leilão deve estar ABERTO para receber lances.")
-        # Lance deve respeitar o lance mínimo
-        if lance.valor < self.lance_minimo:
-            raise ValueError(f"Lance deve ser ≥ R${self.lance_minimo:.2f}")
-         # Lance deve ser maior que o último lance
-        if self.lances and lance.valor <= self.lances[-1].valor:
-            raise ValueError(f"Lance deve ser > R${self.lances[-1].valor:.2f}")
-        # Mesmo participante não pode dar lances consecutivos
-        if self.lances and lance.participante == self.lances[-1].participante:
-            raise ValueError("Participante não pode dar lances consecutivos")
-        # Se passou em todas as validações, adiciona o lance à lista
-        self.lances.append(lance)
-
-     # Método para identificar o vencedor (maior lance)
+    # Método para identificar o vencedor (maior lance)
     def identificar_vencedor(self):
         # Só pode identificar se o leilão estiver FINALIZADO
         if self.estado != EstadoLeilao.FINALIZADO:
@@ -112,3 +108,6 @@ class Leilao:
             return f"{status}\nVencedor: {self.identificar_vencedor().participante.nome}"
          # Caso contrário, mostra apenas o nome e estado
         return status
+
+    def __repr__(self):
+        return f"<Leilao(id={self.id}, nome='{self.nome}', estado={self.estado.name})>"

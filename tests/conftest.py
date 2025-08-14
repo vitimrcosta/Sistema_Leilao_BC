@@ -3,6 +3,9 @@ import pytest
 import sys
 import os
 from datetime import datetime, timedelta
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from models.base import Base
 from models.gerenciador_leiloes import GerenciadorLeiloes
 from models.participante import Participante
 from models.leilao import Leilao
@@ -18,10 +21,22 @@ def email_test_config():
     }
 
 
+@pytest.fixture(scope="function")
+def db_session():
+    """Cria uma sessão de banco de dados para testes."""
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    yield session
+    session.close()
+    Base.metadata.drop_all(engine)
+
+
 @pytest.fixture
-def sistema_limpo():
+def sistema_limpo(db_session):
     """Fixture que garante um sistema limpo para cada teste"""
-    return GerenciadorLeiloes()
+    return GerenciadorLeiloes(db_session)
 
 
 @pytest.fixture

@@ -1,31 +1,16 @@
-# Sistema de Leilão - Dependências
-
-# === DEPENDÊNCIAS PRINCIPAIS ===
-# Envio de email
-python-dotenv==1.0.1
-
-# === DEPENDÊNCIAS DE TESTE ===
-# Framework de testes
-pytest==8.3.5
-pytest-cov==6.1.1
-pytest-mock==3.12.0
-pytest-html==4.1.1
-
-# Cobertura de código
-coverage==7.8.0
-
-# === DEPENDÊNCIAS DE DESENVOLVIMENTO ===
-# Cores no terminal
 colorama==0.4.6
-
-# === DEPENDÊNCIAS DO PYTEST (instaladas automaticamente) ===
+coverage==7.8.0
+greenlet==3.2.4
 iniconfig==2.1.0
+Jinja2==3.1.6
+MarkupSafe==3.0.2
 packaging==25.0
 pluggy==1.6.0
-
-# === DEPENDÊNCIAS CIENTÍFICAS (remover se não usar) ===
-# Comentadas pois não parecem necessárias para o sistema de leilão
-# Descomente apenas se realmente precisar:
-# numpy==2.2.3
-# scipy==1.15.2
-# PuLP==3.0.2
+pytest==8.3.5
+pytest-cov==6.1.1
+pytest-html==4.1.1
+pytest-metadata==3.1.1
+pytest-mock==3.12.0
+python-dotenv==1.0.1
+SQLAlchemy==2.0.31
+typing_extensions==4.14.1
