@@ -26,6 +26,7 @@ __pycache__/
 *.log
 *.sqlite
 leiloes.log
+leilao.db
 
 # Arquivos de sistema
 .DS_Store

@@ -1,6 +1,6 @@
-# 🏆 Sistema de Leilões
+# 🏆 Sistema de Leilões com Banco de Dados
 
-Este é um projeto de sistema de controle de leilões, desenvolvido como parte de um trabalho acadêmico. O objetivo principal é implementar as funcionalidades de cadastro e controle de leilões com **testes unitários e de integração cobrindo 100% do código**.
+Este é um projeto de sistema de controle de leilões, desenvolvido como parte de um trabalho acadêmico. O objetivo principal é implementar as funcionalidades de cadastro e controle de leilões com **testes unitários e de integração cobrindo 100% do código**, utilizando um banco de dados **SQLite** para persistência de dados.
 
 ---
 
@@ -12,6 +12,7 @@ Este é um projeto de sistema de controle de leilões, desenvolvido como parte d
 - ✅ **Filtros Avançados**: Busca por estado, data e período específico
 - ✅ **Notificações Inteligentes**: Serviço de e-mail com múltiplos modos de operação
 - ✅ **Gerenciamento Completo**: Edição e remoção seguindo regras de negócio
+- ✅ **Persistência de Dados**: Utilização de SQLite com SQLAlchemy
 - ✅ **Cobertura de Testes**: Unitários e de integração com 100% de cobertura
 
 ---
@@ -21,6 +22,8 @@ Este é um projeto de sistema de controle de leilões, desenvolvido como parte d
 ```
 Sistema de Leilões/
 ├── models/
+│   ├── base.py                     # Base para os modelos do SQLAlchemy
+│   ├── database.py                 # Configuração do banco de dados
 │   ├── lance.py                    # Classe Lance com valor e participante
 │   ├── leilao.py                   # Classe Leilao e enum EstadoLeilao
 │   ├── participante.py             # Classe Participante com validações
@@ -31,16 +34,21 @@ Sistema de Leilões/
 │
 ├── tests/
 │   ├── conftest.py                 # Configurações globais para os testes de integração
+│   ├── test_database.py            # Testes para o banco de dados
 │   ├── test_detectar_modo.py       # Teste isolado _detectar_modo()
 │   ├── test_email_service.py       # Testes do email service
 │   ├── test_gerenciador_leiloes.py # Testes do gerenciador de leilão
+│   ├── test_gerenciador_leiloes_coverage.py # Testes de cobertura para o gerenciador
 │   ├── test_integration.py         # Testes de integração para fluxo completo de leilão
 │   ├── test_lance.py               # Testes dos lances do leilão
 │   ├── test_leilao.py              # Testes dos leilões
 │   ├── test_main_block.py          # Teste separado para cobrir o bloco __main__ do email_service.py
+│   ├── test_models_coverage.py     # Testes de cobertura para os modelos
 │   └── test_participante.py        # Testes dos participantes
 │
 ├── .env                           # Configurações do ambiente
+├── .gitignore                     # Arquivos ignorados pelo Git
+├── leilao.db                      # Banco de dados SQLite
 ├── README.md                      # Documentação do projeto
 └── requirements.txt               # Arquivo de instalação das dependencias
 ```
@@ -148,13 +156,13 @@ O projeto implementa uma **estratégia de testes abrangente** com duas camadas:
 ### 1️⃣ Configuração Inicial
 ```bash
 # Clone o repositório
-git clone <url-do-repositorio>
-cd sistema-leiloes
+git clone https://github.com/vitimrcosta/Sistema_Leilao_BC.git
+cd Sistema_Leilao_BC
 
 # Crie e ative o ambiente virtual
 python -m venv venv
 venv\Scripts\activate  # Windows
-source venv/Scripts/activate # Linux/Mac/gitbash
+source venv/bin/activate # Linux/Mac
 
 # Instale as dependências
 pip install -r requirements.txt
@@ -163,10 +171,10 @@ pip install -r requirements.txt
 ### 2️⃣ Configuração do Ambiente
 ```bash
 # Crie o arquivo .env na raiz do projeto
-cp .env.example .env
+# (opcional, para configurar o serviço de e-mail)
 
-# Edite as configurações conforme necessário
-# Para desenvolvimento, pode deixar EMAIL_MODE=development
+# Crie o banco de dados
+python -c "from models.database import create_db_tables; create_db_tables()"
 ```
 
 ### 3️⃣ Executando os Testes
@@ -185,7 +193,7 @@ pytest tests/test_integration.py -v
 pytest --cov=models --cov=services --cov-report=term-missing
 
 # Teste específico
-pytest tests/test_leilao.py::test_abrir_leilao -v
+pytest tests/test_leilao.py::test_abrir_leilao_ja_aberto -v
 ```
 
 ### 4️⃣ Verificando Cobertura
@@ -213,6 +221,11 @@ pytest --cov=models --cov=services --cov-report=html
   - Múltiplos modos de operação
   - Tratamento robusto de erros
   - Logs detalhados para debug
+
+### 🗄️ Banco de Dados
+- **`SQLAlchemy`**: ORM para mapeamento objeto-relacional
+- **`SQLite`**: Banco de dados leve e sem servidor
+- **`Session`**: Gerenciamento de transações
 
 ### 📊 Estados do Leilão
 ```
