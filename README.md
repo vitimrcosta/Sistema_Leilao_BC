@@ -37,18 +37,20 @@ Sistema de Leilões/
 │   ├── e2e/                        # Testes End-to-End (BDD)
 │   │   ├── gerenciamento_leilao.feature
 │   │   └── test_leilao_e2e.py
-│   ├── conftest.py                 # Configurações globais para os testes de integração
-│   ├── test_database.py            # Testes para o banco de dados
-│   ├── test_detectar_modo.py       # Teste isolado _detectar_modo()
-│   ├── test_email_service.py       # Testes do email service
-│   ├── test_gerenciador_leiloes.py # Testes do gerenciador de leilão
-│   ├── test_gerenciador_leiloes_coverage.py # Testes de cobertura para o gerenciador
-│   ├── test_integration.py         # Testes de integração para fluxo completo de leilão
-│   ├── test_lance.py               # Testes dos lances do leilão
-│   ├── test_leilao.py              # Testes dos leilões
-│   ├── test_main_block.py          # Teste separado para cobrir o bloco __main__ do email_service.py
-│   ├── test_models_coverage.py     # Testes de cobertura para os modelos
-│   └── test_participante.py        # Testes dos participantes
+│   ├── integration/                # Testes de Integração
+│   │   ├── test_gerenciador_leiloes.py
+│   │   ├── test_gerenciador_leiloes_coverage.py
+│   │   └── test_integration.py
+│   ├── unit/                       # Testes Unitários
+│   │   ├── test_database.py
+│   │   ├── test_detectar_modo.py
+│   │   ├── test_email_service.py
+│   │   ├── test_lance.py
+│   │   ├── test_leilao.py
+│   │   ├── test_main_block.py
+│   │   ├── test_models_coverage.py
+│   │   └── test_participante.py
+│   └── conftest.py                 # Configurações globais para os testes
 │
 ├── .env                           # Configurações do ambiente
 ├── .gitignore                     # Arquivos ignorados pelo Git
@@ -118,17 +120,17 @@ Para usar o modo `production` com Gmail:
 
 O projeto implementa uma **estratégia de testes abrangente** com duas camadas:
 
-### 📋 Testes Unitários (`tests/`)
-- **Foco**: Testam classes isoladamente
-- **Cobertura**: Cada método e regra de negócio
-- **Validações**: CPF, e-mail, estados, transições
-- **Exceções**: Todos os cenários de erro mapeados
+### 📋 Testes Unitários (`tests/unit/`)
+- **Foco**: Testam classes e funções de forma isolada.
+- **Cobertura**: Cada método e regra de negócio.
+- **Validações**: CPF, e-mail, estados, transições.
+- **Exceções**: Todos os cenários de erro mapeados.
 
-### 🔗 Testes de Integração (`test_integration.py`)
-- **Foco**: Testam interação entre componentes
-- **Fluxos**: Cenários completos de leilão
-- **Serviços**: Integração com EmailService
-- **Persistência**: Gerenciamento de dados em memória
+### 🔗 Testes de Integração (`tests/integration/`)
+- **Foco**: Testam a interação entre múltiplos componentes do sistema.
+- **Fluxos**: Cenários completos de leilão, envolvendo gerenciador e banco de dados.
+- **Serviços**: Integração com o `EmailService`.
+- **Persistência**: Gerenciamento de dados em memória.
 
 ### 🧪 Testes End-to-End (E2E) (`tests/e2e/`)
 - **Foco**: Simulam um fluxo de usuário completo, do início ao fim.
@@ -193,10 +195,10 @@ python -c "from models.database import create_db_tables; create_db_tables()"
 pytest -v
 
 # Apenas testes unitários
-pytest tests -v
+pytest tests/unit/ -v
 
-# Apenas testes de integração  
-pytest tests/test_integration.py -v
+# Apenas testes de integração
+pytest tests/integration/ -v
 
 # Apenas testes E2E
 pytest tests/e2e/ -v
