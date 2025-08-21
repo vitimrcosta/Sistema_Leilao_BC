@@ -13,7 +13,8 @@ Este é um projeto de sistema de controle de leilões, desenvolvido como parte d
 - ✅ **Notificações Inteligentes**: Serviço de e-mail com múltiplos modos de operação
 - ✅ **Gerenciamento Completo**: Edição e remoção seguindo regras de negócio
 - ✅ **Persistência de Dados**: Utilização de SQLite com SQLAlchemy
-- ✅ **Cobertura de Testes**: Unitários e de integração com 100% de cobertura
+- ✅ **Cobertura de Testes**: Unitários, de integração e E2E com 100% de cobertura
+- ✅ **Testes E2E**: Cenários de ponta-a-ponta com BDD (pytest-bdd)
 
 ---
 
@@ -33,6 +34,9 @@ Sistema de Leilões/
 │   └── email_service.py            # Serviço de e-mail inteligente
 │
 ├── tests/
+│   ├── e2e/                        # Testes End-to-End (BDD)
+│   │   ├── gerenciamento_leilao.feature
+│   │   └── test_leilao_e2e.py
 │   ├── conftest.py                 # Configurações globais para os testes de integração
 │   ├── test_database.py            # Testes para o banco de dados
 │   ├── test_detectar_modo.py       # Teste isolado _detectar_modo()
@@ -126,6 +130,11 @@ O projeto implementa uma **estratégia de testes abrangente** com duas camadas:
 - **Serviços**: Integração com EmailService
 - **Persistência**: Gerenciamento de dados em memória
 
+### 🧪 Testes End-to-End (E2E) (`tests/e2e/`)
+- **Foco**: Simulam um fluxo de usuário completo, do início ao fim.
+- **Tecnologia**: `pytest-bdd` para escrever cenários em linguagem natural (Gherkin).
+- **Validação**: Garante que a integração de todos os componentes funciona como esperado em um caso de uso real.
+
 ### 🎯 Cenários de Teste Cobertos
 
 **Participantes:**
@@ -188,6 +197,9 @@ pytest tests -v
 
 # Apenas testes de integração  
 pytest tests/test_integration.py -v
+
+# Apenas testes E2E
+pytest tests/e2e/ -v
 
 # Com relatório de cobertura
 pytest --cov=models --cov=services --cov-report=term-missing
