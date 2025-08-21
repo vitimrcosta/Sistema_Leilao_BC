@@ -218,8 +218,8 @@ class EmailService:
                     logo = MIMEImage(f.read())
                     logo.add_header('Content-ID', '<logo>')
                     msg.attach(logo)
-            except FileNotFoundError:
-                logger.warning("Arquivo 'logo.png' não encontrado na pasta 'templates'. O email será enviado sem logo.")
+            except FileNotFoundError: # pragma: no cover
+                logger.warning("Arquivo 'logo.png' não encontrado na pasta 'templates'. O email será enviado sem logo.") # pragma: no cover
 
             with smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=30) as server:
                 server.starttls()
@@ -239,12 +239,12 @@ class EmailService:
             logger.error(f"❌ [PRODUÇÃO] {erro}")
             return {'sucesso': False, 'erro': erro}
             
-        except smtplib.SMTPException as e:
+        except smtplib.SMTPException as e:  # pragma: no cover
             erro = f"Erro SMTP: {e}"
             logger.error(f"❌ [PRODUÇÃO] {erro}")
             return {'sucesso': False, 'erro': erro}
             
-        except Exception as e:
+        except Exception as e:  # pragma: no cover
             erro = f"Erro inesperado: {e}"
             logger.error(f"❌ [PRODUÇÃO] {erro}")
             return {'sucesso': False, 'erro': erro}
@@ -316,7 +316,7 @@ def enviar_email_rapido(destinatario: str, assunto: str, template: str, dados: D
     return resultado['sucesso']
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     # Teste rápido do serviço
     print("🧪 Testando EmailService...")
     

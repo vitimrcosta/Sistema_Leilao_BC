@@ -1,4 +1,3 @@
-from services.email_service import EmailService
 from datetime import datetime
 from enum import Enum, auto
 
@@ -49,7 +48,7 @@ class Leilao(Base):
         self.estado = EstadoLeilao.ABERTO
 
     # Método para finalizar o leilão
-    def finalizar(self, agora: datetime, enviar_email: bool = True):
+    def finalizar(self, agora: datetime):
         # Só pode finalizar se estiver ABERTO
         if self.estado != EstadoLeilao.ABERTO:
             raise ValueError("Leilão só pode ser finalizado se estiver ABERTO.")
@@ -63,21 +62,6 @@ class Leilao(Base):
         else:
             # Se tiver lances, leilão é finalizado
             self.estado = EstadoLeilao.FINALIZADO
-            vencedor = max(self.lances, key=lambda lance: lance.valor).participante
-            # Envia e-mail de forma síncrona
-            email_service = EmailService()
-            if enviar_email:
-                email_service.enviar(
-                    vencedor.email,
-                    "Parabéns! Você venceu o leilão",
-                    "email_template.html",
-                    {
-                        "nome_vencedor": vencedor.nome,
-                        "nome_item": self.nome,
-                        "valor_lance": f"{max(l.valor for l in self.lances):.2f}",
-                        "ano": datetime.now().year
-                    }
-                )
 
     # Método para identificar o vencedor (maior lance)
     def identificar_vencedor(self):

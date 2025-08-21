@@ -214,6 +214,42 @@ class TestEmailServiceProducao:
         assert resultado['sucesso'] is False
         assert 'destinatário' in resultado['erro'].lower()
 
+    @patch.dict(os.environ, {
+        'EMAIL_USER': 'teste@gmail.com',
+        'EMAIL_PASSWORD': 'senha123'
+    })
+    @patch('services.email_service.smtplib.SMTP')
+    def test_envio_producao_smtp_exception_generica(self, mock_smtp):
+        """Testa o tratamento para uma SMTPException genérica."""
+        mock_server = MagicMock()
+        mock_smtp.return_value.__enter__.return_value = mock_server
+        mock_server.send_message.side_effect = smtplib.SMTPException("Erro genérico de SMTP")
+
+        service = EmailService(modo='production')
+        resultado = service.enviar("teste@teste.com", "Assunto", "email_template.html", {})
+
+        assert resultado['sucesso'] is False
+        assert 'Erro SMTP' in resultado['erro']
+        assert service.emails_falharam == 1
+
+    @patch.dict(os.environ, {
+        'EMAIL_USER': 'teste@gmail.com',
+        'EMAIL_PASSWORD': 'senha123'
+    })
+    @patch('services.email_service.smtplib.SMTP')
+    def test_envio_producao_exception_inesperada(self, mock_smtp):
+        """Testa o tratamento para uma exceção qualquer e inesperada."""
+        mock_server = MagicMock()
+        mock_smtp.return_value.__enter__.return_value = mock_server
+        mock_server.send_message.side_effect = RuntimeError("Erro inesperado de runtime")
+
+        service = EmailService(modo='production')
+        resultado = service.enviar("teste@teste.com", "Assunto", "email_template.html", {})
+
+        assert resultado['sucesso'] is False
+        assert 'Erro inesperado' in resultado['erro']
+        assert service.emails_falharam == 1
+
 
 class TestEmailServiceIntegracao:
     """Testa integração do EmailService com outros componentes"""

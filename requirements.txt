@@ -11,3 +11,4 @@ setuptools
 wheel
 pytest-mock
 Jinja2
+pytest-bdd

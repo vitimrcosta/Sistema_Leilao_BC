@@ -88,7 +88,7 @@ class TestIntegracaoFluxoCompletoLeilao:
             call_args, call_kwargs = mock_enviar.call_args
             
             assert call_args[0] == "joao@email.com"  # Destinatário
-            assert call_args[1] == "Parabéns! Você venceu o leilão"  # Assunto
+            assert call_args[1] == f"Parabéns! Você venceu o leilão '{leilao.nome}'"  # Assunto
             assert call_args[2] == "email_template.html"  # Template
             assert isinstance(call_args[3], dict)  # Dados
             assert call_args[3]['nome_vencedor'] == "João Silva"
@@ -311,7 +311,7 @@ class TestIntegracaoEmailService:
         
         # CORREÇÃO: Usar patch diretamente no método finalizar
         # para interceptar a chamada antes da execução
-        with patch('models.leilao.EmailService') as mock_email_class:
+        with patch('models.gerenciador_leiloes.EmailService') as mock_email_class:
             mock_email_instance = mock_email_class.return_value
             mock_email_instance.enviar.side_effect = Exception("Falha de rede")
             

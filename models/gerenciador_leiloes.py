@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from models.leilao import Leilao, EstadoLeilao
 from models.participante import Participante
 from models.lance import Lance
+from services.email_service import EmailService
 
 # Classe responsável por gerenciar todas as operações relacionadas a leilões e participantes.
 class GerenciadorLeiloes:
@@ -40,8 +41,30 @@ class GerenciadorLeiloes:
         leilao = self.encontrar_leilao_por_id(leilao_id)
         if not leilao:
             raise ValueError("Leilão não encontrado")
+        
         leilao.finalizar(data_finalizacao)
         self.db.commit()
+
+        # Se o leilão foi finalizado com um vencedor, envia o e-mail.
+        if leilao.estado == EstadoLeilao.FINALIZADO:
+            try:
+                vencedor = leilao.identificar_vencedor().participante
+                email_service = EmailService()
+                email_service.enviar(
+                    vencedor.email,
+                    f"Parabéns! Você venceu o leilão '{leilao.nome}'",
+                    "email_template.html",
+                    {
+                        "nome_vencedor": vencedor.nome,
+                        "nome_item": leilao.nome,
+                        "valor_lance": f"{leilao.maior_lance:.2f}",
+                        "ano": datetime.now().year
+                    }
+                )
+            except Exception as e:
+                # Mesmo que o e-mail falhe, o leilão já foi finalizado.
+                # Apenas registra o erro para análise posterior.
+                print(f"ALERTA: Leilão ID {leilao.id} finalizado, mas o e-mail para o vencedor falhou: {e}")
 
     def adicionar_lance(self, leilao_id: int, lance: Lance):
         leilao = self.encontrar_leilao_por_id(leilao_id)

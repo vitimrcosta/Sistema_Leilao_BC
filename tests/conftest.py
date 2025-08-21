@@ -11,6 +11,12 @@ from models.participante import Participante
 from models.leilao import Leilao
 
 
+@pytest.fixture(scope="session", autouse=True)
+def force_test_mode_for_session():
+    """Força o modo de teste para toda a sessão pytest para evitar envio de e-mails."""
+    os.environ['EMAIL_MODE'] = 'test'
+
+
 @pytest.fixture(scope="session")
 def email_test_config():
     """Configuração global para testes de email"""

@@ -24,13 +24,13 @@ def main():
     participante1_data = Participante(
         cpf="123.456.789-00",
         nome="Victor",
-        email="victor.rcosta@outlook.com",
+        email="vitim.rcosta@gmail.com",
         data_nascimento=datetime(2001, 9, 5)
     )
     participante2_data = Participante(
         cpf="987.654.321-00",
-        nome="Samuel",
-        email="samu.rcosta@gmail.com",
+        nome="Victor Rocha",
+        email="victor.rcosta@outlook.com",
         data_nascimento=datetime(1998, 1, 22)
     )
     participante1 = gerenciador.adicionar_participante(participante1_data)
@@ -79,7 +79,6 @@ def main():
             except ValueError as e:
                 print(f"Tentando finalizar... ({e})")
                 time.sleep(0.5)
-        time.sleep(0.5)
     
     # Resultado
     print("\n=== RESULTADO ===")
