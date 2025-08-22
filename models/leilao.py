@@ -68,6 +68,9 @@ class Leilao(Base):
         # Só pode identificar se o leilão estiver FINALIZADO
         if self.estado != EstadoLeilao.FINALIZADO:
             raise ValueError("Leilão não finalizado")
+        # Se não houver lances, não há vencedor
+        if not self.lances:
+            return None
         # Retorna o lance com maior valor
         return max(self.lances, key=lambda lance: lance.valor)
 
