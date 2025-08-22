@@ -11,12 +11,6 @@ from models.participante import Participante
 from models.leilao import Leilao
 
 
-@pytest.fixture(scope="session", autouse=True)
-def force_test_mode_for_session():
-    """Força o modo de teste para toda a sessão pytest para evitar envio de e-mails."""
-    os.environ['EMAIL_MODE'] = 'test'
-
-
 @pytest.fixture(scope="session")
 def email_test_config():
     """Configuração global para testes de email"""
@@ -40,8 +34,11 @@ def db_session():
 
 
 @pytest.fixture
-def sistema_limpo(db_session):
-    """Fixture que garante um sistema limpo para cada teste"""
+def sistema_limpo(db_session, mocker):
+    """Fixture que garante um sistema limpo e mocka serviços externos."""
+    # Mocka o EmailService para evitar o envio de e-mails reais durante os testes.
+    # O patch aponta para onde o EmailService é importado e usado.
+    mocker.patch('models.gerenciador_leiloes.EmailService')
     return GerenciadorLeiloes(db_session)
 
 
